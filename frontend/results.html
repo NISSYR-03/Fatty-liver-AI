@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HepatoAI — Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#050C12;--surface:#091420;--card:#0E1E2E;--border:#1A3048;
+  --accent:#00D4A0;--warn:#FFB347;--danger:#FF4C4C;
+  --text:#E4F0EC;--muted:#5A8099;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  font-weight:300;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,212,160,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,212,160,.02) 1px,transparent 1px);
+  background-size:64px 64px;pointer-events:none}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5rem;background:rgba(5,12,18,.9);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;
+  color:var(--accent);text-decoration:none}
+.logo span{color:var(--text)}
+.nav-r{display:flex;gap:1rem;align-items:center}
+.back-btn{color:var(--muted);text-decoration:none;font-size:.82rem;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:500;
+  display:flex;align-items:center;gap:.4rem;transition:color .2s}
+.back-btn:hover{color:var(--accent)}
+.btn-p{display:inline-flex;align-items:center;gap:.5rem;
+  background:var(--accent);color:var(--bg);padding:.6rem 1.4rem;
+  border-radius:2px;font-weight:500;font-size:.85rem;
+  text-decoration:none;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:transform .2s}
+.btn-p:hover{transform:translateY(-1px)}
+
+.page{position:relative;z-index:10;padding:8rem 5rem 5rem;max-width:1100px;margin:0 auto}
+
+/* NO RESULT */
+.no-result{text-align:center;padding:6rem 2rem}
+.no-result h2{font-family:'Playfair Display',serif;font-size:2rem;margin-bottom:1rem}
+.no-result p{color:var(--muted);margin-bottom:2rem}
+
+/* RISK HEADER */
+.result-header{display:grid;grid-template-columns:auto 1fr auto;
+  gap:3rem;align-items:center;margin-bottom:3rem;
+  background:var(--card);border:1px solid var(--border);padding:2.5rem;
+  opacity:0;animation:up .7s .1s forwards}
+.risk-badge{text-align:center}
+.risk-emoji{font-size:3.5rem;line-height:1}
+.risk-label{font-family:'Playfair Display',serif;font-size:2.5rem;
+  font-weight:900;margin-top:.3rem}
+.risk-divider{width:1px;background:var(--border);height:80px}
+.risk-info{}
+.risk-info-title{font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;
+  color:var(--accent);text-transform:uppercase;margin-bottom:.5rem}
+.risk-confidence{font-size:1.1rem;font-weight:500;margin-bottom:.5rem}
+.risk-model{font-size:.8rem;color:var(--muted)}
+
+/* GAUGE */
+.result-gauge{display:flex;justify-content:center;align-items:center}
+.gauge-svg{}
+
+/* DASHBOARD GRID */
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.card{background:var(--card);border:1px solid var(--border);padding:2rem;
+  opacity:0;animation:up .7s forwards}
+.card:nth-child(1){animation-delay:.3s}
+.card:nth-child(2){animation-delay:.4s}
+.card:nth-child(3){animation-delay:.5s;grid-column:1/-1}
+.card:nth-child(4){animation-delay:.6s;grid-column:1/-1}
+.card-title{font-family:'Playfair Display',serif;font-size:1.2rem;
+  font-weight:700;margin-bottom:1.5rem;display:flex;align-items:center;gap:.6rem}
+
+/* PROBABILITY BARS */
+.prob-bars{}
+.pb-row{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.pb-label{font-family:var(--mono);font-size:.72rem;width:70px;
+  text-transform:uppercase;letter-spacing:.1em}
+.pb-track{flex:1;height:28px;background:var(--border);border-radius:2px;
+  overflow:hidden;position:relative}
+.pb-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.16,1,.3,1);
+  width:0;display:flex;align-items:center;justify-content:flex-end;padding-right:.5rem}
+.pb-pct{font-family:var(--mono);font-size:.72rem;color:var(--bg);font-weight:500}
+
+/* SHAP CHART */
+.shap-chart{width:100%}
+.shap-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.7rem}
+.shap-label{font-family:var(--mono);font-size:.7rem;width:110px;
+  text-transform:uppercase;letter-spacing:.08em;text-align:right;color:var(--muted)}
+.shap-bar-wrap{flex:1;display:flex;align-items:center;justify-content:center;height:22px;position:relative}
+.shap-zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border)}
+.shap-bar{height:18px;border-radius:2px;transition:width 1.2s ease;width:0;position:absolute}
+.shap-pos{background:rgba(0,212,160,.7);left:50%}
+.shap-neg{background:rgba(255,76,76,.7);right:50%}
+.shap-val{font-family:var(--mono);font-size:.68rem;width:60px;color:var(--muted)}
+.shap-legend{display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.78rem}
+.shap-leg-item{display:flex;align-items:center;gap:.4rem}
+.shap-dot-pos{width:10px;height:10px;border-radius:1px;background:rgba(0,212,160,.7)}
+.shap-dot-neg{width:10px;height:10px;border-radius:1px;background:rgba(255,76,76,.7)}
+
+/* CLINICAL FLAGS */
+.flags-list{}
+.flag-item{display:flex;align-items:flex-start;gap:1rem;
+  padding:.9rem;border:1px solid var(--border);margin-bottom:.6rem;border-radius:2px}
+.flag-icon{font-size:1.2rem;flex-shrink:0}
+.flag-field{font-family:var(--mono);font-size:.72rem;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.1em}
+.flag-text{font-size:.85rem;color:var(--muted);margin-top:.2rem}
+.flag-high{border-color:rgba(255,76,76,.3)}
+.flag-low{border-color:rgba(255,179,71,.3)}
+.no-flags{color:var(--accent);font-size:.9rem}
+
+/* RECOMMENDATION */
+.rec-box{background:rgba(0,212,160,.05);border:1px solid rgba(0,212,160,.2);
+  padding:1.5rem;border-radius:2px;font-size:.92rem;line-height:1.7;color:var(--text)}
+
+/* INPUT TABLE */
+.input-table{width:100%;border-collapse:collapse}
+.input-table th,.input-table td{padding:.6rem .8rem;border:1px solid var(--border);
+  font-size:.83rem;text-align:left}
+.input-table th{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;
+  color:var(--accent);text-transform:uppercase;background:var(--surface)}
+.input-table tr:nth-child(even) td{background:rgba(255,255,255,.01)}
+
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  nav{padding:1rem 1.5rem}
+  .page{padding:7rem 1.5rem 3rem}
+  .result-header{grid-template-columns:1fr;gap:1.5rem}
+  .risk-divider{display:none}
+  .dashboard{grid-template-columns:1fr}
+  .card:nth-child(3),.card:nth-child(4){grid-column:auto}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="index.html">Hepato<span>AI</span></a>
+  <div class="nav-r">
+    <a class="back-btn" href="assess.html">← New Assessment</a>
+    <a class="btn-p" href="chat.html">💬 Chat AI</a>
+  </div>
+</nav>
+
+<div class="page" id="page">
+  <!-- Filled by JS -->
+</div>
+
+<script>
+const FEATURES_LABEL = {
+  age:'Age', gender:'Gender', bmi:'BMI', alt:'ALT/SGPT',
+  ast:'AST/SGOT', bilirubin:'Bilirubin', albumin:'Albumin',
+  triglycerides:'Triglycerides', glucose:'Glucose'
+};
+const UNITS = {
+  age:'yrs', gender:'', bmi:'kg/m²', alt:'U/L', ast:'U/L',
+  bilirubin:'mg/dL', albumin:'g/dL', triglycerides:'mg/dL', glucose:'mg/dL'
+};
+
+function genderLabel(v){ return v==1?'Male':'Female'; }
+
+function render(data){
+  const page = document.getElementById('page');
+  const risk = data.risk_label;
+  const probs = data.probabilities;
+  const probLabels = data.probability_labels||['Low','Medium','High'];
+  const shap = data.shap_contributions||{};
+  const flags = data.clinical_flags||[];
+  const rec = data.recommendation||'';
+  const inputs = data.input_values||{};
+
+  const riskColors = {Low:'#00D4A0',Medium:'#FFB347',High:'#FF4C4C'};
+  const riskEmoji  = {Low:'🟢',Medium:'🟡',High:'🔴'};
+  const riskColor  = riskColors[risk]||'#fff';
+
+  // Gauge needle angle: Low=-50deg, Medium=0deg, High=50deg
+  const needleAngles = {Low:-48, Medium:0, High:48};
+  const needleAngle  = needleAngles[risk]||0;
+
+  const probColors = ['#00D4A0','#FFB347','#FF4C4C'];
+
+  // SHAP bars — max abs for scaling
+  const shapEntries = Object.entries(shap).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  const maxShap = Math.max(...shapEntries.map(([,v])=>Math.abs(v)),0.001);
+
+  page.innerHTML = `
+  <!-- HEADER -->
+  <div class="result-header">
+    <div class="risk-badge">
+      <div class="risk-emoji">${riskEmoji[risk]||'⚪'}</div>
+      <div class="risk-label" style="color:${riskColor}">${risk}</div>
+      <div style="font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-top:.3rem">RISK LEVEL</div>
+    </div>
+    <div class="risk-divider"></div>
+    <div class="risk-info">
+      <div class="risk-info-title">Assessment Summary</div>
+      <div class="risk-confidence">Confidence: <strong>${(Math.max(...probs)*100).toFixed(1)}%</strong></div>
+      <div class="risk-model" style="margin-bottom:.4rem">
+        Model: XGBoost + SHAP &nbsp;|&nbsp; Accuracy: ${data.model_accuracy||'N/A'}
+      </div>
+      <div class="risk-model">
+        ${flags.length ? `⚠️ ${flags.length} abnormal value${flags.length>1?'s':''} detected` : '✅ All values within or near normal ranges'}
+      </div>
+    </div>
+    <div class="result-gauge">
+      <svg viewBox="0 0 240 160" width="240" class="gauge-svg" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 130 A100 100 0 0 1 120 30" fill="none" stroke="#00D4A0" stroke-width="14" stroke-linecap="round"/>
+        <path d="M120 30 A100 100 0 0 1 200 80" fill="none" stroke="#FFB347" stroke-width="14" stroke-linecap="round"/>
+        <path d="M200 80 A100 100 0 0 1 220 130" fill="none" stroke="#FF4C4C" stroke-width="14" stroke-linecap="round"/>
+        <path d="M20 130 A100 100 0 0 1 220 130" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="14"/>
+        <line x1="120" y1="130" x2="${120+80*Math.sin(needleAngle*Math.PI/180)}" y2="${130-80*Math.cos(needleAngle*Math.PI/180)}"
+              stroke="${riskColor}" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="120" cy="130" r="7" fill="var(--bg)" stroke="${riskColor}" stroke-width="2"/>
+        <text x="14" y="152" font-family="DM Mono" font-size="9" fill="#00D4A0">LOW</text>
+        <text x="102" y="24" font-family="DM Mono" font-size="9" fill="#FFB347">MED</text>
+        <text x="196" y="152" font-family="DM Mono" font-size="9" fill="#FF4C4C">HIGH</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="dashboard">
+
+    <!-- PROBABILITIES -->
+    <div class="card">
+      <div class="card-title">📊 Risk Probabilities</div>
+      <div class="prob-bars" id="probBars">
+        ${probLabels.map((lbl,i)=>`
+          <div class="pb-row">
+            <span class="pb-label" style="color:${probColors[i]}">${lbl}</span>
+            <div class="pb-track">
+              <div class="pb-fill" data-w="${(probs[i]*100).toFixed(1)}"
+                   style="background:${probColors[i]}">
+                <span class="pb-pct">${(probs[i]*100).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- CLINICAL FLAGS -->
+    <div class="card">
+      <div class="card-title">🩺 Clinical Flags</div>
+      <div class="flags-list">
+        ${flags.length===0
+          ? '<div class="no-flags">✅ No abnormal values detected</div>'
+          : flags.map(f=>`
+            <div class="flag-item flag-${f.status.toLowerCase()}">
+              <div class="flag-icon">${f.status==='HIGH'?'🔴':'🟡'}</div>
+              <div>
+                <div class="flag-field">${f.field.toUpperCase()} — ${f.status}</div>
+                <div class="flag-text">Value: <strong>${f.value}</strong> &nbsp;|&nbsp; Normal: ${f.normal}</div>
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- SHAP -->
+    <div class="card">
+      <div class="card-title">🔍 SHAP Feature Contributions</div>
+      <div class="shap-legend">
+        <div class="shap-leg-item"><div class="shap-dot-pos"></div> Increases risk</div>
+        <div class="shap-leg-item"><div class="shap-dot-neg"></div> Decreases risk</div>
+      </div>
+      <div class="shap-chart" id="shapChart">
+        ${shapEntries.map(([feat,val])=>{
+          const pct   = Math.abs(val)/maxShap*45;
+          const isPos = val > 0;
+          return `
+          <div class="shap-row">
+            <div class="shap-label">${FEATURES_LABEL[feat]||feat}</div>
+            <div class="shap-bar-wrap">
+              <div class="shap-zero"></div>
+              <div class="shap-bar ${isPos?'shap-pos':'shap-neg'}"
+                   data-w="${pct.toFixed(1)}"></div>
+            </div>
+            <div class="shap-val" style="color:${isPos?'var(--accent)':'var(--danger)'}">
+              ${isPos?'+':''}${val.toFixed(4)}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- RECOMMENDATION -->
+    <div class="card">
+      <div class="card-title">💡 Clinical Recommendation</div>
+      <div class="rec-box">${rec}</div>
+
+      <div class="card-title" style="margin-top:2rem">📋 Your Input Values</div>
+      <table class="input-table">
+        <thead><tr>
+          <th>Biomarker</th><th>Value</th><th>Unit</th>
+        </tr></thead>
+        <tbody>
+          ${Object.entries(inputs).map(([k,v])=>`
+            <tr>
+              <td>${FEATURES_LABEL[k]||k}</td>
+              <td>${k==='gender'?genderLabel(v):v}</td>
+              <td>${UNITS[k]||''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  `;
+
+  // Animate probability bars
+  setTimeout(()=>{
+    document.querySelectorAll('.pb-fill').forEach(b=>{
+      b.style.width = b.dataset.w + '%';
+    });
+    document.querySelectorAll('.shap-bar').forEach(b=>{
+      b.style.width = b.dataset.w + '%';
+    });
+  }, 200);
+}
+
+// Load result from sessionStorage
+const raw = sessionStorage.getItem('hepatoResult');
+if(!raw){
+  document.getElementById('page').innerHTML = `
+    <div class="no-result">
+      <h2>No Results Yet</h2>
+      <p>Run an assessment first to see your results here.</p>
+      <a href="assess.html" class="btn-p" style="display:inline-flex;margin-top:1rem">⚡ Go to Assessment</a>
+    </div>`;
+} else {
+  try { render(JSON.parse(raw)); }
+  catch(e){ document.getElementById('page').innerHTML='<p style="color:red;padding:8rem 5rem">Error parsing result.</p>'; }
+}
+</script>
+</body>
+</html>

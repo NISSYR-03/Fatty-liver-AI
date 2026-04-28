@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HepatoAI — AI Chat Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#050C12;--surface:#091420;--card:#0E1E2E;--border:#1A3048;
+  --accent:#00D4A0;--warn:#FFB347;--danger:#FF4C4C;
+  --text:#E4F0EC;--muted:#5A8099;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  font-weight:300;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,212,160,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,212,160,.02) 1px,transparent 1px);
+  background-size:64px 64px;pointer-events:none}
+
+/* NAV */
+.top-bar{position:relative;z-index:10;display:flex;align-items:center;
+  justify-content:space-between;padding:1rem 3rem;
+  background:rgba(5,12,18,.95);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;
+  color:var(--accent);text-decoration:none}
+.logo span{color:var(--text)}
+.top-status{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--muted)}
+.dot-online{width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.back-btn{color:var(--muted);text-decoration:none;font-size:.8rem;
+  letter-spacing:.08em;text-transform:uppercase;transition:color .2s}
+.back-btn:hover{color:var(--accent)}
+
+/* CHAT LAYOUT */
+.chat-layout{display:flex;flex:1;overflow:hidden;position:relative;z-index:10}
+
+/* SIDEBAR */
+.sidebar{width:260px;border-right:1px solid var(--border);
+  background:var(--surface);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-head{padding:1.5rem;border-bottom:1px solid var(--border)}
+.sidebar-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700}
+.sidebar-sub{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+.quick-list{padding:1rem;display:flex;flex-direction:column;gap:.5rem;overflow-y:auto}
+.quick-title{font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;
+  color:var(--accent);text-transform:uppercase;padding:.5rem 0 .3rem}
+.quick-btn{background:none;border:1px solid var(--border);color:var(--muted);
+  padding:.6rem .9rem;border-radius:2px;text-align:left;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:.82rem;transition:border-color .2s,color .2s}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sidebar-bottom{padding:1rem;margin-top:auto;border-top:1px solid var(--border)}
+.session-info{font-family:var(--mono);font-size:.65rem;color:var(--muted);
+  line-height:1.7}
+
+/* MESSAGES */
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.messages{flex:1;overflow-y:auto;padding:2rem;display:flex;flex-direction:column;gap:1rem}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* BUBBLES */
+.msg{display:flex;gap:.8rem;max-width:75%;opacity:0;animation:msgIn .35s forwards}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.bot{align-self:flex-start;flex-direction:row}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+
+.msg-avatar{width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;flex-shrink:0;margin-top:4px}
+.bot .msg-avatar{background:var(--accent);color:var(--bg)}
+.user .msg-avatar{background:var(--border);color:var(--muted)}
+
+.msg-bubble{padding:.9rem 1.2rem;border-radius:4px;font-size:.9rem;line-height:1.6;max-width:100%}
+.bot .msg-bubble{background:var(--card);border:1px solid var(--border);border-radius:0 8px 8px 8px}
+.user .msg-bubble{background:var(--accent);color:var(--bg);font-weight:400;border-radius:8px 0 8px 8px}
+.msg-bubble strong{font-weight:600}
+.msg-bubble em{font-style:italic}
+
+/* Typing */
+.typing .msg-bubble{padding:.9rem 1.2rem}
+.typing-dots{display:flex;gap:4px;align-items:center}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--muted);
+  animation:typedot .8s infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes typedot{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
+
+/* RESULT CARD in chat */
+.result-card{background:var(--surface);border:1px solid var(--border);
+  padding:1.2rem;border-radius:4px;margin-top:.5rem;min-width:280px}
+.result-risk{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem}
+.result-probs{display:flex;flex-direction:column;gap:.4rem;margin:.8rem 0}
+.rp-row{display:flex;align-items:center;gap:.6rem}
+.rp-lbl{font-family:var(--mono);font-size:.65rem;width:60px;
+  text-transform:uppercase;letter-spacing:.08em}
+.rp-bar{flex:1;height:5px;background:var(--border);border-radius:2px;overflow:hidden}
+.rp-fill{height:100%;border-radius:2px;width:0;transition:width 1s ease}
+.result-card a{color:var(--accent);font-size:.82rem;text-decoration:none;
+  font-family:var(--mono);letter-spacing:.08em}
+.result-card a:hover{text-decoration:underline}
+
+/* INPUT BAR */
+.input-bar{border-top:1px solid var(--border);padding:1.2rem 2rem;
+  background:var(--surface);display:flex;align-items:center;gap:.8rem;flex-shrink:0}
+.input-wrap{flex:1;position:relative}
+#chatInput{width:100%;background:var(--card);border:1px solid var(--border);
+  color:var(--text);padding:.85rem 1.2rem;border-radius:2px;
+  font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:300;
+  outline:none;transition:border-color .2s;resize:none}
+#chatInput:focus{border-color:var(--accent)}
+#chatInput::placeholder{color:var(--muted)}
+.send-btn{background:var(--accent);color:var(--bg);border:none;
+  width:42px;height:42px;border-radius:2px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;
+  transition:transform .15s,box-shadow .15s;flex-shrink:0}
+.send-btn:hover{transform:scale(1.08);box-shadow:0 4px 14px rgba(0,212,160,.4)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+@media(max-width:800px){
+  .sidebar{display:none}
+  .top-bar,.input-bar{padding:1rem 1.2rem}
+  .messages{padding:1rem}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <a class="logo" href="index.html">Hepato<span>AI</span></a>
+  <div class="top-status">
+    <div class="dot-online"></div>
+    AI Assistant Online
+  </div>
+  <a class="back-btn" href="assess.html">Form Assessment →</a>
+</div>
+
+<div class="chat-layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-title">🤖 Liver AI Assistant</div>
+      <div class="sidebar-sub">Ask anything about liver health</div>
+    </div>
+    <div class="quick-list">
+      <div class="quick-title">Quick Actions</div>
+      <button class="quick-btn" onclick="sendQuick('hi')">🔄 Start Assessment</button>
+      <button class="quick-btn" onclick="sendQuick('restart')">🆕 New Assessment</button>
+
+      <div class="quick-title">Learn About</div>
+      <button class="quick-btn" onclick="sendQuick('what is alt')">📖 What is ALT?</button>
+      <button class="quick-btn" onclick="sendQuick('what is ast')">📖 What is AST?</button>
+      <button class="quick-btn" onclick="sendQuick('what is bmi')">📖 What is BMI?</button>
+      <button class="quick-btn" onclick="sendQuick('what is bilirubin')">📖 What is Bilirubin?</button>
+      <button class="quick-btn" onclick="sendQuick('what is albumin')">📖 What is Albumin?</button>
+      <button class="quick-btn" onclick="sendQuick('what is triglycerides')">📖 Triglycerides?</button>
+      <button class="quick-btn" onclick="sendQuick('what is fatty liver')">📖 Fatty Liver?</button>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="session-info" id="sessionInfo">Session: No data collected</div>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="chat-main">
+    <div class="messages" id="messages"></div>
+
+    <!-- INPUT -->
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea id="chatInput" rows="1" placeholder="Type your message… (Enter to send)"
+                  onkeydown="handleKey(event)"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="send()" title="Send">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let sessionData = {};
+
+// Markdown-lite renderer
+function renderMD(text){
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n/g,'<br/>');
+}
+
+function addMsg(role, html, resultData=null){
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+  const avatar = role==='bot'?'🤖':'👤';
+  let extra = '';
+  if(resultData) extra = renderResultCard(resultData);
+  wrap.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div>
+      <div class="msg-bubble">${renderMD(html)}</div>
+      ${extra}
+    </div>`;
+  document.getElementById('messages').appendChild(wrap);
+  scrollBottom();
+
+  // Animate result bars if any
+  if(resultData){
+    setTimeout(()=>{
+      wrap.querySelectorAll('.rp-fill').forEach(b=>{
+        b.style.width = b.dataset.w + '%';
+      });
+    },200);
+  }
+  return wrap;
+}
+
+function renderResultCard(result){
+  const c = {Low:'#00D4A0',Medium:'#FFB347',High:'#FF4C4C'};
+  const e = {Low:'🟢',Medium:'🟡',High:'🔴'};
+  const probs   = result.probabilities||[];
+  const pLabels = result.probability_labels||['Low','Medium','High'];
+  const pColors = ['#00D4A0','#FFB347','#FF4C4C'];
+  return `
+  <div class="result-card">
+    <div class="result-risk" style="color:${c[result.risk_label]||'#fff'}">
+      ${e[result.risk_label]||''} ${result.risk_label} Risk
+    </div>
+    <div style="font-size:.78rem;color:var(--muted)">
+      Confidence: ${(Math.max(...probs)*100).toFixed(1)}%
+    </div>
+    <div class="result-probs">
+      ${pLabels.map((l,i)=>`
+        <div class="rp-row">
+          <span class="rp-lbl" style="color:${pColors[i]}">${l}</span>
+          <div class="rp-bar"><div class="rp-fill" data-w="${(probs[i]*100).toFixed(0)}" style="background:${pColors[i]}"></div></div>
+          <span style="font-family:var(--mono);font-size:.65rem;width:36px">${(probs[i]*100).toFixed(1)}%</span>
+        </div>`).join('')}
+    </div>
+    <a href="results.html">View full results →</a>
+  </div>`;
+}
+
+function addTyping(){
+  const el = addMsg('bot','');
+  el.querySelector('.msg-bubble').innerHTML = `
+    <div class="typing-dots">
+      <span></span><span></span><span></span>
+    </div>`;
+  el.classList.add('typing');
+  return el;
+}
+
+function removeTyping(el){ el.remove(); }
+
+function scrollBottom(){
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function updateSidebar(){
+  const keys = Object.keys(sessionData);
+  document.getElementById('sessionInfo').textContent =
+    keys.length===0 ? 'Session: No data collected'
+    : `Collected: ${keys.join(', ')}`;
+}
+
+async function send(){
+  const input = document.getElementById('chatInput');
+  const msg   = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  addMsg('user', msg);
+  const typing = addTyping();
+
+  try{
+    const res  = await fetch(`${API}/chat`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: msg, session_data: sessionData})
+    });
+    const json = await res.json();
+    removeTyping(typing);
+
+    if(json.error){ addMsg('bot','⚠️ Backend error: '+json.error); return; }
+
+    sessionData = json.session_data||{};
+    updateSidebar();
+
+    // If prediction came back, store it
+    if(json.prediction){
+      sessionStorage.setItem('hepatoResult', JSON.stringify(json.prediction));
+      addMsg('bot', json.reply, json.prediction);
+    } else {
+      addMsg('bot', json.reply);
+    }
+  }catch(e){
+    removeTyping(typing);
+    addMsg('bot','⚠️ Cannot connect to backend. Make sure Flask is running on port 5000.');
+  } finally {
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+  }
+}
+
+function sendQuick(msg){
+  document.getElementById('chatInput').value = msg;
+  send();
+}
+
+function handleKey(e){
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    send();
+  }
+}
+
+// Auto-resize textarea
+document.getElementById('chatInput').addEventListener('input', function(){
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120)+'px';
+});
+
+// Greeting on load
+window.addEventListener('load', async ()=>{
+  const typing = addTyping();
+  try{
+    const res  = await fetch(`${API}/chat`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message:'hi', session_data:{}})
+    });
+    const json = await res.json();
+    removeTyping(typing);
+    sessionData = json.session_data||{};
+    addMsg('bot', json.reply);
+  }catch(e){
+    removeTyping(typing);
+    addMsg('bot',
+      '⚠️ Could not connect to the HepatoAI backend.\n\n'+
+      'Please start Flask: **cd backend && python app.py**\n\n'+
+      'Once running, refresh this page or type **hi** to begin.');
+  }
+  document.getElementById('chatInput').focus();
+});
+</script>
+</body>
+</html>

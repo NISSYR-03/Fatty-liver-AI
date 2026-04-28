@@ -1,0 +1,142 @@
+# HepatoAI — Complete Setup Guide
+# ============================================================
+# FULL STACK: Flask + XGBoost + SHAP + OCR + CNN + HTML Frontend
+# ============================================================
+
+# ────────────────────────────────────────────────────────────
+# STEP 0 — SYSTEM REQUIREMENTS
+# ────────────────────────────────────────────────────────────
+# • Python 3.9 or 3.10 recommended (NOT 3.12 for TensorFlow)
+# • pip (comes with Python)
+# • Tesseract OCR (for blood report scanning)
+#
+# Install Tesseract:
+#   Windows → https://github.com/UB-Mannheim/tesseract/wiki
+#              Download installer, install to C:\Program Files\Tesseract-OCR\
+#   macOS   → brew install tesseract
+#   Ubuntu  → sudo apt-get install tesseract-ocr
+#
+# Install poppler (needed for pdf2image):
+#   Windows → https://github.com/oschwartz10612/poppler-windows
+#   macOS   → brew install poppler
+#   Ubuntu  → sudo apt-get install poppler-utils
+
+# ────────────────────────────────────────────────────────────
+# STEP 1 — CREATE VIRTUAL ENVIRONMENT
+# ────────────────────────────────────────────────────────────
+# Open a terminal / command prompt in the hepatoai/ folder
+
+# Windows:
+python -m venv venv
+venv\Scripts\activate
+
+# macOS / Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+# ────────────────────────────────────────────────────────────
+# STEP 2 — INSTALL PYTHON DEPENDENCIES
+# ────────────────────────────────────────────────────────────
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# If TensorFlow fails (optional — CNN still works with heuristic):
+# pip install flask flask-cors scikit-learn xgboost shap numpy pandas joblib pytesseract Pillow PyMuPDF opencv-python-headless werkzeug
+
+# ────────────────────────────────────────────────────────────
+# STEP 3 — TRAIN THE ML MODEL
+# ────────────────────────────────────────────────────────────
+cd ml_training
+python generate_dataset.py
+python train_model.py
+cd ..
+
+# Expected output:
+# ✅ Dataset saved → saved_models/fatty_liver_dataset.csv
+# 📊 Accuracy : 0.9XXX
+# 📊 AUC-ROC  : 0.9XXX
+# ✅ All files saved to ./saved_models/
+
+# ────────────────────────────────────────────────────────────
+# STEP 4 — START THE FLASK BACKEND
+# ────────────────────────────────────────────────────────────
+cd backend
+python app.py
+
+# Expected output:
+# ✅ ML model loaded.
+# 🚀 HepatoAI backend → http://localhost:5000
+
+# Leave this terminal OPEN. Backend must stay running.
+
+# ────────────────────────────────────────────────────────────
+# STEP 5 — SERVE THE FRONTEND
+# ────────────────────────────────────────────────────────────
+# Open a NEW terminal tab/window:
+
+cd frontend
+python -m http.server 5500
+
+# Now open your browser:
+# http://localhost:5500/index.html        ← Home page
+# http://localhost:5500/assess.html       ← Assessment (manual/OCR/image)
+# http://localhost:5500/results.html      ← Results + SHAP chart
+# http://localhost:5500/chat.html         ← AI Chatbot
+
+# ────────────────────────────────────────────────────────────
+# API ENDPOINTS (Flask at localhost:5000)
+# ────────────────────────────────────────────────────────────
+# GET  /api/health                     → check if model is loaded
+# POST /api/predict   (JSON body)      → predict from manual inputs
+# POST /api/ocr       (multipart file) → OCR blood report PDF/image
+# POST /api/image-predict (multipart)  → CNN ultrasound classification
+# POST /api/chat      (JSON body)      → chatbot message handler
+
+# ────────────────────────────────────────────────────────────
+# TEST THE API (optional — in a 3rd terminal)
+# ────────────────────────────────────────────────────────────
+# curl http://localhost:5000/api/health
+
+# curl -X POST http://localhost:5000/api/predict \
+#   -H "Content-Type: application/json" \
+#   -d '{"age":42,"gender":1,"bmi":29.5,"alt":68,"ast":52,"bilirubin":1.4,"albumin":3.8,"triglycerides":210,"glucose":112}'
+
+# ────────────────────────────────────────────────────────────
+# TROUBLESHOOTING
+# ────────────────────────────────────────────────────────────
+# "CORS error" in browser   → Flask app.py already has CORS enabled (flask-cors)
+# "Model not loaded"        → Run ml_training steps first
+# "Tesseract not found"     → Install Tesseract system package (see Step 0)
+# "Cannot connect to port 5000" → Make sure python app.py is running
+# "ModuleNotFoundError"     → Run: pip install -r requirements.txt
+
+# ────────────────────────────────────────────────────────────
+# PROJECT STRUCTURE
+# ────────────────────────────────────────────────────────────
+# hepatoai/
+# ├── requirements.txt
+# ├── SETUP.sh  (this file)
+# │
+# ├── ml_training/
+# │   ├── generate_dataset.py      ← Run FIRST
+# │   ├── train_model.py           ← Run SECOND
+# │   └── saved_models/
+# │       ├── fatty_liver_dataset.csv
+# │       ├── xgboost_model.pkl
+# │       ├── scaler.pkl
+# │       ├── shap_explainer.pkl
+# │       └── model_meta.json
+# │
+# ├── backend/
+# │   ├── app.py                   ← Flask server (run this)
+# │   ├── models/
+# │   │   └── predictor.py         ← ML inference
+# │   └── utils/
+# │       ├── ocr_extractor.py     ← Tesseract OCR
+# │       └── image_classifier.py  ← ResNet50 CNN
+# │
+# └── frontend/
+#     ├── index.html               ← Home page
+#     ├── assess.html              ← 3-method assessment
+#     ├── results.html             ← SHAP dashboard
+#     └── chat.html                ← AI chatbot

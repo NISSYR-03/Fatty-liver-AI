@@ -1,0 +1,24 @@
+{
+  "features": [
+    "age",
+    "gender",
+    "bmi",
+    "alt",
+    "ast",
+    "bilirubin",
+    "albumin",
+    "triglycerides",
+    "glucose",
+    "ast_alt_ratio",
+    "bmi_category",
+    "age_group"
+  ],
+  "classes": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "accuracy": 0.813,
+  "auc": 0.9272,
+  "cv_mean": 0.9018
+}

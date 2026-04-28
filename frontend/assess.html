@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>HepatoAI — Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#050C12;--surface:#091420;--card:#0E1E2E;--border:#1A3048;
+  --accent:#00D4A0;--warn:#FFB347;--danger:#FF4C4C;
+  --text:#E4F0EC;--muted:#5A8099;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  font-weight:300;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,212,160,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,212,160,.02) 1px,transparent 1px);
+  background-size:64px 64px;pointer-events:none}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:999;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 5rem;background:rgba(5,12,18,.9);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:900;
+  color:var(--accent);text-decoration:none}
+.logo span{color:var(--text)}
+.back-btn{color:var(--muted);text-decoration:none;font-size:.82rem;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:500;
+  display:flex;align-items:center;gap:.5rem;transition:color .2s}
+.back-btn:hover{color:var(--accent)}
+
+.page{position:relative;z-index:10;padding:8rem 5rem 5rem;max-width:1100px;margin:0 auto}
+
+.page-title{font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.5rem);
+  font-weight:900;line-height:1;margin-bottom:.8rem;
+  opacity:0;animation:up .7s .1s forwards}
+.page-sub{color:var(--muted);font-size:.95rem;margin-bottom:3rem;
+  opacity:0;animation:up .7s .25s forwards}
+
+/* TAB SWITCHER */
+.tabs{display:flex;gap:0;border:1px solid var(--border);
+  margin-bottom:2.5rem;width:fit-content;
+  opacity:0;animation:up .7s .4s forwards}
+.tab{padding:.7rem 1.8rem;background:none;border:none;color:var(--muted);
+  font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;
+  letter-spacing:.05em;cursor:pointer;border-right:1px solid var(--border);
+  transition:background .2s,color .2s;white-space:nowrap}
+.tab:last-child{border-right:none}
+.tab.active{background:var(--accent);color:var(--bg)}
+.tab:not(.active):hover{color:var(--accent)}
+
+/* PANELS */
+.panel{display:none;opacity:0;animation:up .5s forwards}
+.panel.active{display:block}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.field{display:flex;flex-direction:column;gap:.5rem}
+.field label{font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;
+  color:var(--accent);text-transform:uppercase}
+.field input,.field select{
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text);padding:.8rem 1rem;border-radius:2px;
+  font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:300;
+  outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+.field input:focus,.field select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(0,212,160,.1)}
+.field select option{background:var(--card)}
+.field-hint{font-size:.75rem;color:var(--muted)}
+.normal-range{font-size:.72rem;color:var(--muted);font-family:var(--mono)}
+.val-error{font-size:.72rem;color:var(--danger);display:none}
+
+.form-actions{display:flex;gap:1rem;margin-top:2rem}
+.btn-p{display:inline-flex;align-items:center;gap:.5rem;
+  background:var(--accent);color:var(--bg);padding:.85rem 2.2rem;
+  border-radius:2px;font-weight:500;font-size:.95rem;border:none;
+  cursor:pointer;transition:transform .2s,box-shadow .2s;font-family:'DM Sans',sans-serif}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,212,160,.35)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-s{display:inline-flex;align-items:center;gap:.5rem;
+  border:1px solid var(--border);color:var(--text);padding:.85rem 2.2rem;
+  border-radius:2px;font-size:.95rem;background:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:border-color .2s,color .2s}
+.btn-s:hover{border-color:var(--accent);color:var(--accent)}
+
+/* OCR PANEL */
+.upload-area{border:1.5px dashed var(--border);padding:4rem 2rem;
+  text-align:center;border-radius:4px;cursor:pointer;
+  transition:border-color .2s,background .2s;position:relative}
+.upload-area:hover,.upload-area.drag{
+  border-color:var(--accent);background:rgba(0,212,160,.04)}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:3rem;margin-bottom:1rem}
+.upload-title{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem}
+.upload-sub{color:var(--muted);font-size:.88rem}
+.upload-types{font-family:var(--mono);font-size:.7rem;color:var(--accent);
+  margin-top:.8rem;letter-spacing:.1em}
+
+.extracted-vals{margin-top:1.5rem;display:none}
+.extracted-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}
+.ext-card{background:var(--card);border:1px solid var(--border);padding:1rem;border-radius:2px}
+.ext-field{font-family:var(--mono);font-size:.7rem;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.1em}
+.ext-val{font-size:1.4rem;font-weight:500;margin:.3rem 0}
+.ext-status{font-size:.72rem;padding:.15rem .5rem;border-radius:2px;display:inline-block}
+.status-high{background:rgba(255,76,76,.15);color:var(--danger)}
+.status-low{background:rgba(255,179,71,.15);color:var(--warn)}
+.status-ok{background:rgba(0,212,160,.1);color:var(--accent)}
+
+/* IMAGE PANEL */
+.img-preview{max-width:100%;max-height:300px;border:1px solid var(--border);
+  border-radius:2px;margin-top:1rem;display:none}
+.img-result{background:var(--card);border:1px solid var(--border);
+  padding:1.5rem;border-radius:2px;margin-top:1rem;display:none}
+.img-result-cls{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700}
+.img-conf-bars{margin-top:1rem}
+.img-bar-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.6rem}
+.img-bar-lbl{font-family:var(--mono);font-size:.7rem;width:120px;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.img-bar-track{flex:1;height:5px;background:var(--border);border-radius:2px;overflow:hidden}
+.img-bar-fill{height:100%;background:var(--accent);border-radius:2px;
+  transition:width 1s ease;width:0}
+.img-bar-pct{font-family:var(--mono);font-size:.7rem;width:40px;text-align:right}
+
+/* LOADING */
+.loading{display:none;align-items:center;gap:1rem;
+  padding:1.5rem;color:var(--muted);font-size:.9rem}
+.spinner{width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(120%);
+  background:var(--card);border:1px solid var(--accent);padding:.8rem 1.5rem;
+  border-radius:2px;font-size:.9rem;z-index:9999;
+  transition:transform .3s;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  nav{padding:1rem 1.5rem}
+  .page{padding:7rem 1.5rem 3rem}
+  .form-grid,.extracted-grid{grid-template-columns:1fr 1fr}
+  .tabs{flex-wrap:wrap}
+}
+@media(max-width:600px){
+  .form-grid,.extracted-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="index.html">Hepato<span>AI</span></a>
+  <a class="back-btn" href="index.html">← Back to Home</a>
+</nav>
+
+<div class="page">
+  <h1 class="page-title">Liver Risk Assessment</h1>
+  <p class="page-sub">Choose how you'd like to provide your data. All analysis happens on our secure server.</p>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('manual',this)">📝 Manual Input</button>
+    <button class="tab" onclick="switchTab('ocr',this)">📄 Blood Report OCR</button>
+    <button class="tab" onclick="switchTab('image',this)">🖼️ Ultrasound Image</button>
+  </div>
+
+  <!-- ── PANEL 1: MANUAL ──────────────────────────────── -->
+  <div class="panel active" id="panel-manual">
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Age (years)</label>
+        <input type="number" id="age" placeholder="e.g. 35" min="1" max="120"/>
+        <span class="normal-range">Range: 18–100</span>
+      </div>
+
+      <div class="field">
+        <label>Gender</label>
+        <select id="gender">
+          <option value="">Select gender</option>
+          <option value="1">Male</option>
+          <option value="0">Female</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>BMI (kg/m²)</label>
+        <input type="number" id="bmi" placeholder="e.g. 26.5" step="0.1" min="10" max="70"/>
+        <span class="normal-range">Normal: 18.5–24.9</span>
+      </div>
+
+      <div class="field">
+        <label>ALT / SGPT (U/L)</label>
+        <input type="number" id="alt" placeholder="e.g. 32" min="0" max="1000"/>
+        <span class="normal-range">Normal: 7–56 U/L</span>
+      </div>
+
+      <div class="field">
+        <label>AST / SGOT (U/L)</label>
+        <input type="number" id="ast" placeholder="e.g. 28" min="0" max="1000"/>
+        <span class="normal-range">Normal: 10–40 U/L</span>
+      </div>
+
+      <div class="field">
+        <label>Total Bilirubin (mg/dL)</label>
+        <input type="number" id="bilirubin" placeholder="e.g. 0.9" step="0.01" min="0" max="30"/>
+        <span class="normal-range">Normal: 0.2–1.2 mg/dL</span>
+      </div>
+
+      <div class="field">
+        <label>Albumin (g/dL)</label>
+        <input type="number" id="albumin" placeholder="e.g. 4.2" step="0.01" min="0" max="10"/>
+        <span class="normal-range">Normal: 3.5–5.0 g/dL</span>
+      </div>
+
+      <div class="field">
+        <label>Triglycerides (mg/dL)</label>
+        <input type="number" id="triglycerides" placeholder="e.g. 130" min="0" max="2000"/>
+        <span class="normal-range">Normal: &lt;150 mg/dL</span>
+      </div>
+
+      <div class="field">
+        <label>Fasting Glucose (mg/dL)</label>
+        <input type="number" id="glucose" placeholder="e.g. 95" min="0" max="600"/>
+        <span class="normal-range">Normal: 70–100 mg/dL</span>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-p" onclick="submitManual()">⚡ Analyze Risk</button>
+      <button class="btn-s" onclick="fillDemo()">📋 Fill Demo Data</button>
+    </div>
+    <div class="loading" id="loading-manual">
+      <div class="spinner"></div>Running XGBoost + SHAP analysis…
+    </div>
+  </div>
+
+  <!-- ── PANEL 2: OCR ──────────────────────────────────── -->
+  <div class="panel" id="panel-ocr">
+    <div class="upload-area" id="ocrDrop">
+      <input type="file" id="ocrFile" accept=".pdf,.png,.jpg,.jpeg,.bmp,.tiff"
+             onchange="handleOCR(this.files[0])"/>
+      <div class="upload-icon">📄</div>
+      <div class="upload-title">Drop your blood report here</div>
+      <div class="upload-sub">or click to browse files</div>
+      <div class="upload-types">PDF · PNG · JPG · BMP · TIFF</div>
+    </div>
+
+    <div class="loading" id="loading-ocr" style="margin-top:1rem">
+      <div class="spinner"></div>Running OCR extraction…
+    </div>
+
+    <div class="extracted-vals" id="extractedVals">
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:.5rem">
+        ✅ Values extracted from your report. Review and edit if needed:
+      </p>
+      <div class="extracted-grid" id="extractedGrid"></div>
+      <div class="form-actions" style="margin-top:1.5rem">
+        <button class="btn-p" onclick="submitExtracted()">⚡ Analyze These Values</button>
+      </div>
+    </div>
+    <div class="loading" id="loading-ocr-predict" style="margin-top:1rem">
+      <div class="spinner"></div>Running prediction…
+    </div>
+  </div>
+
+  <!-- ── PANEL 3: IMAGE ────────────────────────────────── -->
+  <div class="panel" id="panel-image">
+    <div class="upload-area" id="imgDrop">
+      <input type="file" id="imgFile" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp"
+             onchange="handleImage(this.files[0])"/>
+      <div class="upload-icon">🖼️</div>
+      <div class="upload-title">Drop liver ultrasound image here</div>
+      <div class="upload-sub">ResNet50 CNN will classify fatty deposits</div>
+      <div class="upload-types">PNG · JPG · BMP · TIFF · WEBP</div>
+    </div>
+    <img id="imgPreview" class="img-preview"/>
+
+    <div class="loading" id="loading-img" style="margin-top:1rem">
+      <div class="spinner"></div>Running CNN classification…
+    </div>
+
+    <div class="img-result" id="imgResult">
+      <div class="img-result-cls" id="imgClass"></div>
+      <div style="font-size:.85rem;color:var(--muted);margin:.3rem 0 1rem" id="imgRisk"></div>
+      <div class="img-conf-bars" id="imgBars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5000/api';
+
+// ── Tab switching ─────────────────────────────────────────────────
+function switchTab(name, btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  const p = document.getElementById('panel-'+name);
+  p.classList.add('active');
+  p.style.animation = 'none';
+  requestAnimationFrame(()=>{ p.style.animation = 'up .5s forwards'; });
+}
+
+// ── Toast ────────────────────────────────────────────────────────
+function toast(msg, isErr=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr?' error':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ── Loading helper ────────────────────────────────────────────────
+function setLoad(id, show){
+  document.getElementById(id).style.display = show ? 'flex' : 'none';
+}
+
+// ── Demo data ─────────────────────────────────────────────────────
+function fillDemo(){
+  const d = {age:42,gender:1,bmi:29.5,alt:68,ast:52,bilirubin:1.4,albumin:3.8,triglycerides:210,glucose:112};
+  Object.entries(d).forEach(([k,v])=>{
+    const el = document.getElementById(k);
+    if(el) el.value = v;
+  });
+  toast('Demo data filled! Click Analyze to run prediction.');
+}
+
+// ── MANUAL SUBMIT ─────────────────────────────────────────────────
+async function submitManual(){
+  const fields = ['age','gender','bmi','alt','ast','bilirubin','albumin','triglycerides','glucose'];
+  const data   = {};
+  let valid    = true;
+
+  for(const f of fields){
+    const el  = document.getElementById(f);
+    const val = el.value.trim();
+    if(!val){ el.style.borderColor='var(--danger)'; valid=false; }
+    else    { el.style.borderColor=''; data[f]=parseFloat(val); }
+  }
+  if(!valid){ toast('Please fill all fields.', true); return; }
+
+  setLoad('loading-manual', true);
+  try{
+    const res  = await fetch(`${API}/predict`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if(result.error) throw new Error(result.error);
+    sessionStorage.setItem('hepatoResult', JSON.stringify(result));
+    window.location.href = 'results.html';
+  }catch(e){
+    toast('Backend error: '+e.message+' — Is Flask running?', true);
+  }finally{
+    setLoad('loading-manual', false);
+  }
+}
+
+// ── OCR UPLOAD ────────────────────────────────────────────────────
+let extractedData = {};
+
+async function handleOCR(file){
+  if(!file) return;
+  setLoad('loading-ocr', true);
+  document.getElementById('extractedVals').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try{
+    const res  = await fetch(`${API}/ocr`,{method:'POST',body:fd});
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+    extractedData = json.values || {};
+    renderExtracted(extractedData, json.fields_missing||[]);
+  }catch(e){
+    toast('OCR error: '+e.message, true);
+  }finally{
+    setLoad('loading-ocr', false);
+  }
+}
+
+const NORMALS = {
+  alt:[7,56,'U/L'], ast:[10,40,'U/L'], bilirubin:[0.2,1.2,'mg/dL'],
+  albumin:[3.5,5.0,'g/dL'], triglycerides:[0,150,'mg/dL'], glucose:[70,100,'mg/dL']
+};
+
+function renderExtracted(vals, missing){
+  const grid = document.getElementById('extractedGrid');
+  grid.innerHTML = '';
+  const allFields = ['alt','ast','bilirubin','albumin','triglycerides','glucose'];
+  allFields.forEach(f=>{
+    const v = vals[f];
+    const [lo,hi,unit] = NORMALS[f]||[null,null,''];
+    let statusClass='status-ok', statusText='Normal';
+    if(v!==undefined && lo!==null){
+      if(v<lo){ statusClass='status-low'; statusText='LOW'; }
+      else if(v>hi){ statusClass='status-high'; statusText='HIGH'; }
+    }
+    grid.innerHTML += `
+      <div class="ext-card">
+        <div class="ext-field">${f.toUpperCase()}</div>
+        <input class="ext-val" type="number" id="ext-${f}" value="${v!==undefined?v:''}"
+               placeholder="—" step="0.01"
+               style="background:none;border:none;color:var(--text);font-size:1.3rem;
+                      font-weight:500;width:100%;outline:none;font-family:'DM Sans',sans-serif"
+               onchange="extractedData['${f}']=parseFloat(this.value)"/>
+        <div><span class="ext-status ${statusClass}">${statusText}</span>
+          <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${unit}</span>
+        </div>
+      </div>`;
+  });
+  document.getElementById('extractedVals').style.display = 'block';
+  if(missing.length) toast(`Could not extract: ${missing.join(', ')} — enter manually.`);
+}
+
+async function submitExtracted(){
+  // Need all 9 fields for prediction — get missing from manual panel or prompt
+  const needed = ['age','gender','bmi','alt','ast','bilirubin','albumin','triglycerides','glucose'];
+  // Fill from extracted
+  const data = {...extractedData};
+  // Prompt for missing critical fields
+  const stillMissing = needed.filter(f=>data[f]===undefined||isNaN(data[f]));
+  if(stillMissing.length){
+    toast(`Still need: ${stillMissing.join(', ')}. Enter in Manual tab.`,true);
+    return;
+  }
+  setLoad('loading-ocr-predict', true);
+  try{
+    const res    = await fetch(`${API}/predict`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    const result = await res.json();
+    if(result.error) throw new Error(result.error);
+    sessionStorage.setItem('hepatoResult', JSON.stringify(result));
+    window.location.href = 'results.html';
+  }catch(e){
+    toast('Error: '+e.message, true);
+  }finally{
+    setLoad('loading-ocr-predict', false);
+  }
+}
+
+// ── IMAGE UPLOAD ──────────────────────────────────────────────────
+async function handleImage(file){
+  if(!file) return;
+  const preview = document.getElementById('imgPreview');
+  preview.src   = URL.createObjectURL(file);
+  preview.style.display = 'block';
+  document.getElementById('imgResult').style.display = 'none';
+  setLoad('loading-img', true);
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try{
+    const res  = await fetch(`${API}/image-predict`,{method:'POST',body:fd});
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+    renderImageResult(json);
+  }catch(e){
+    toast('CNN error: '+e.message, true);
+  }finally{
+    setLoad('loading-img', false);
+  }
+}
+
+function renderImageResult(data){
+  const riskColor = {Low:'#00D4A0',Medium:'#FFB347',High:'#FF4C4C'};
+  const clsEl  = document.getElementById('imgClass');
+  const riskEl = document.getElementById('imgRisk');
+  const barsEl = document.getElementById('imgBars');
+
+  clsEl.textContent  = data.class_label;
+  clsEl.style.color  = riskColor[data.risk_level]||'var(--text)';
+  riskEl.textContent = `Overall Risk: ${data.risk_level}  |  Method: ${data.method}`;
+
+  barsEl.innerHTML = '';
+  Object.entries(data.probabilities||{}).forEach(([lbl,pct])=>{
+    barsEl.innerHTML += `
+      <div class="img-bar-row">
+        <span class="img-bar-lbl">${lbl}</span>
+        <div class="img-bar-track">
+          <div class="img-bar-fill" data-w="${(pct*100).toFixed(0)}"></div>
+        </div>
+        <span class="img-bar-pct">${(pct*100).toFixed(1)}%</span>
+      </div>`;
+  });
+  document.getElementById('imgResult').style.display = 'block';
+  // Animate bars
+  setTimeout(()=>{
+    document.querySelectorAll('.img-bar-fill').forEach(b=>{
+      b.style.width = b.dataset.w + '%';
+    });
+  },100);
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────
+['ocrDrop','imgDrop'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('dragover',e=>{ e.preventDefault(); el.classList.add('drag'); });
+  el.addEventListener('dragleave',()=>el.classList.remove('drag'));
+  el.addEventListener('drop',e=>{
+    e.preventDefault(); el.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if(!file) return;
+    if(id==='ocrDrop') handleOCR(file);
+    else handleImage(file);
+  });
+});
+
+// Enter key submits
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && document.getElementById('panel-manual').classList.contains('active'))
+    submitManual();
+});
+</script>
+</body>
+</html>
