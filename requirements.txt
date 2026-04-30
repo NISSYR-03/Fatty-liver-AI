@@ -12,3 +12,4 @@ google-generativeai>=0.3.0
 gunicorn==21.2.0
 setuptools
 wheel
+Pillow
