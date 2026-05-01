@@ -10,19 +10,35 @@
     "triglycerides",
     "glucose",
     "ast_alt_ratio",
+    "albumin_bilirubin",
     "bmi_category",
     "age_group",
     "liver_enzymes",
     "metabolic_score",
-    "albumin_bilirubin",
-    "female_risk"
+    "female_risk",
+    "bmi_sq",
+    "alt_sq",
+    "bmi_glucose",
+    "age_bmi",
+    "tri_glucose",
+    "alt_albumin",
+    "log_alt",
+    "log_ast",
+    "log_tri",
+    "log_bili"
   ],
   "classes": [
     "Low",
     "Medium",
     "High"
   ],
-  "accuracy": 0.808,
-  "auc": 0.9301,
-  "cv_mean": 0.9042
+  "accuracy": 0.9055,
+  "auc": 0.9815,
+  "cv_mean": 0.9462,
+  "cv_std": 0.0018,
+  "ensemble": [
+    "xgb",
+    "lgb",
+    "rf"
+  ]
 }
