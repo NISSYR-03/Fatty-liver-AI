@@ -255,5 +255,6 @@ def process_chat(msg, session):
 
 
 if __name__ == "__main__":
-    print("\n🚀 HepatoAI backend → http://localhost:5000\n")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n🚀 HepatoAI backend starting on port {port} → http://0.0.0.0:{port}\n")
+    app.run(debug=True, host="0.0.0.0", port=port)
