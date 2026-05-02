@@ -160,8 +160,12 @@ class Predictor:
             if hasattr(self.model, "get_booster"):
                 booster = self.model.get_booster()
                 self.explainer = shap.TreeExplainer(booster, feature_names=ALL_FEATURES)
-            else:
-                self.explainer = shap.TreeExplainer(self.model, feature_names=ALL_FEATURES)
+            if self.explainer is None:
+                try:
+                    self.explainer = shap.TreeExplainer(self.model, feature_names=ALL_FEATURES)
+                except Exception as e:
+                    print(f"⚠️ Explainer error: {e}")
+                    self.explainer = None
         except Exception:
             try:
                 self.explainer = shap.Explainer(self.model)

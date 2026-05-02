@@ -240,6 +240,13 @@ def process_chat(msg, session):
         emoji = {"Low":"🟢","Medium":"🟡","High":"🔴"}.get(risk, "⚪")
         conf  = round(max(probas)*100, 1)
 
+        if self.explainer is None:
+            try:
+                # Use a smaller background dataset for faster SHAP
+                self.explainer = shap.TreeExplainer(self.model)
+            except:
+                self.explainer = None
+
         if shap_d:
             top3 = sorted(shap_d.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
             facts = "\n".join(
