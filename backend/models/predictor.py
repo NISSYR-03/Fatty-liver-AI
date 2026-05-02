@@ -235,15 +235,15 @@ class Predictor:
             shap_d = {}
         else:
             try:
-            self._build_explainer()
-            if self.explainer is not None:
-                if hasattr(self.explainer, "shap_values"):
-                    sv = self.explainer.shap_values(Xs)
-                else:
-                    sv = self.explainer(Xs)
-                shap_d = self._extract_shap(sv, cls)
-        except Exception:
-            shap_d = {}
+                self._build_explainer()
+                if self.explainer is not None:
+                    if hasattr(self.explainer, "shap_values"):
+                        sv = self.explainer.shap_values(Xs)
+                    else:
+                        sv = self.explainer(Xs)
+                    shap_d = self._extract_shap(sv, cls)
+            except Exception:
+                shap_d = {}
 
         # Clinical flags
         flags = []
