@@ -153,7 +153,15 @@ class Predictor:
 
     def _load(self):
         try:
-            self.model  = joblib.load(f"{MODEL_DIR}/xgboost_model.pkl")
+            # On Render, we only load the XGBoost model to save memory
+            if os.environ.get("RENDER"):
+                self.model = joblib.load(f"{MODEL_DIR}/xgboost_model.pkl")
+                # If it's an ensemble, take the first model (XGBoost)
+                if hasattr(self.model, "models"):
+                    self.model = self.model.models[0]
+            else:
+                self.model = joblib.load(f"{MODEL_DIR}/xgboost_model.pkl")
+            
             self.scaler = joblib.load(f"{MODEL_DIR}/scaler.pkl")
         except FileNotFoundError as e:
             print(f"⚠️  Model missing ({e}). Run ml_training/train_model.py")
