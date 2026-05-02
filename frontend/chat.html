@@ -301,7 +301,7 @@ async function send(){
     }
   }catch(e){
     removeTyping(typing);
-    addMsg('bot','⚠️ Cannot connect to backend. Make sure Flask is running on port 5000.');
+    addMsg('bot','⚠️ Cannot connect to the AI brain. Please check your internet connection or try again later.');
   } finally {
     document.getElementById('sendBtn').disabled = false;
     input.focus();
@@ -341,9 +341,9 @@ window.addEventListener('load', async ()=>{
   }catch(e){
     removeTyping(typing);
     addMsg('bot',
-      '⚠️ Could not connect to the HepatoAI backend.\n\n'+
-      'Please start Flask: **cd backend && python app.py**\n\n'+
-      'Once running, refresh this page or type **hi** to begin.');
+      '⚠️ Could not connect to the HepatoAI assistant.\n\n'+
+      'If you are running this locally, make sure the Flask backend is active.\n\n'+
+      'If you are on Render, ensure the service is active and the GEMINI_API_KEY is configured.');
   }
   document.getElementById('chatInput').focus();
 });

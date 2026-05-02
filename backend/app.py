@@ -44,7 +44,12 @@ def serve_frontend(filename):
 # ─── HEALTH ─────────────────────────────────────────────────────────
 @app.route("/api/health")
 def health():
-    return jsonify({"status":"ok","model_ready": predictor.is_ready()})
+    return jsonify({
+        "status": "ok",
+        "model_ready": predictor.is_ready(),
+        "model_accuracy": predictor.meta.get("accuracy", "N/A"),
+        "model_auc": predictor.meta.get("auc", "N/A")
+    })
 
 
 # ─── PREDICT (manual inputs) ────────────────────────────────────────
