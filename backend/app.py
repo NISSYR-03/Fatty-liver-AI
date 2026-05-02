@@ -118,6 +118,7 @@ def chat():
 # ────────────────────────────────────────────────────────────────────
 import os
 import json
+import re
 import google.generativeai as genai
 from dotenv import load_dotenv
 
