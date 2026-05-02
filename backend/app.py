@@ -61,7 +61,7 @@ def predict():
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Backend Error", "details": str(e)}), 500
 
 
 # ─── OCR ────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ def ocr():
         return jsonify(res)
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Backend Error", "details": str(e)}), 500
 
 
 # ─── IMAGE CNN ──────────────────────────────────────────────────────
@@ -95,7 +95,7 @@ def image_predict():
         return jsonify(res)
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Backend Error", "details": str(e)}), 500
 
 
 # ─── CHATBOT ────────────────────────────────────────────────────────
