@@ -129,7 +129,7 @@ if API_KEY:
 else:
     print("WARNING: GEMINI_API_KEY not found in environment.")
 
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-1.5-flash"
 SYSTEM_PROMPT = """
 You are HepatoAI, an expert Liver Health AI Assistant. Your goal is to provide deep, accurate, and comprehensive knowledge about liver health, fatty liver disease, medical tests (like ALT, AST, Bilirubin, Albumin), and general wellness.
 
