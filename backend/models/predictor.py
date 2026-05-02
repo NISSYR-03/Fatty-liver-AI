@@ -137,16 +137,20 @@ class Predictor:
 
     def _load(self):
         try:
+            # Use memory-mapping on Render to stay within 512MB RAM
+            IS_RENDER = os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID")
+            mmap = 'r' if IS_RENDER else None
+            
             p = os.path.join(MODEL_DIR, "xgboost_model.pkl")
             if os.path.exists(p):
-                self.model = joblib.load(p)
+                self.model = joblib.load(p, mmap_mode=mmap)
                 if hasattr(self.model, "models"):
                     self.model = self.model.models[0]
             
             sp = os.path.join(MODEL_DIR, "scaler.pkl")
             if os.path.exists(sp):
                 self.scaler = joblib.load(sp)
-            print("✅ Model loaded.")
+            print("✅ ML model loaded (Memory Optimization: ON)" if IS_RENDER else "✅ ML model loaded.")
         except Exception as e:
             print(f"⚠️ Load failed: {e}")
 
@@ -222,9 +226,12 @@ class Predictor:
         probas = self.model.predict_proba(Xs)[0].tolist()
         label  = ["Low","Medium","High"][cls]
 
+        # Detect if we are on Render (automatic or manual env var)
+        IS_RENDER = os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID")
+
         # Skip SHAP on Render to prevent memory exhaustion and timeouts
         shap_d = {}
-        if not os.environ.get("RENDER"):
+        if not IS_RENDER:
             try:
                 self._build_explainer()
                 if self.explainer is not None:
