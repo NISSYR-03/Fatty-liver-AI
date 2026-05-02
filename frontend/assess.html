@@ -352,17 +352,25 @@ async function submitManual(){
 
   setLoad('loading-manual', true);
   try{
-    const res  = await fetch(`${API}/predict`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
+    const res = await fetch(`${API}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Server ${res.status}: ${text.slice(0, 50)}...`);
+    }
+    
     const result = await res.json();
-    if(result.error) throw new Error(result.error);
+    if (result.error) throw new Error(result.error);
     sessionStorage.setItem('hepatoResult', JSON.stringify(result));
     window.location.href = 'results.html';
-  }catch(e){
-    toast('Backend error: '+e.message+' — Is Flask running?', true);
-  }finally{
+  } catch (e) {
+    console.error(e);
+    toast('Error: ' + e.message + ' (Check if Backend is running)', true);
+  } finally {
     setLoad('loading-manual', false);
   }
 }

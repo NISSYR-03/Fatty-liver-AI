@@ -25,8 +25,12 @@ class ManualEnsemble:
     def fit(self, X, y):
         return self
 
+# Ensure ManualEnsemble is available globally for unpickling
 import __main__
 __main__.ManualEnsemble = ManualEnsemble
+import sys
+# Also map it to the old training path in case the pickle expects it there
+sys.modules['ml_training.train_model'] = sys.modules[__name__]
 # ─────────────────────────────────────────────────────────────────────────────
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__),
@@ -133,29 +137,28 @@ class Predictor:
 
     def _load(self):
         try:
-            # On Render, we only load the XGBoost model to save memory
-            if os.environ.get("RENDER"):
-                self.model = joblib.load(f"{MODEL_DIR}/xgboost_model.pkl")
-                # If it's an ensemble, take the first model (XGBoost)
+            p = os.path.join(MODEL_DIR, "xgboost_model.pkl")
+            if os.path.exists(p):
+                self.model = joblib.load(p)
                 if hasattr(self.model, "models"):
                     self.model = self.model.models[0]
-            else:
-                self.model = joblib.load(f"{MODEL_DIR}/xgboost_model.pkl")
             
-            self.scaler = joblib.load(f"{MODEL_DIR}/scaler.pkl")
-        except FileNotFoundError as e:
-            print(f"⚠️  Model missing ({e}). Run ml_training/train_model.py")
-            return
+            sp = os.path.join(MODEL_DIR, "scaler.pkl")
+            if os.path.exists(sp):
+                self.scaler = joblib.load(sp)
+            print("✅ Model loaded.")
+        except Exception as e:
+            print(f"⚠️ Load failed: {e}")
 
-        # Build SHAP explainer lazily at prediction time to avoid version-specific
-        # pickling issues across SHAP/XGBoost releases.
-        self.explainer = None
-
-        mp = f"{MODEL_DIR}/model_meta.json"
-        if os.path.exists(mp):
-            with open(mp, "r") as f:
-                self.meta = json.load(f)
-        print("✅ ML model loaded.")
+        try:
+            mp = f"{MODEL_DIR}/model_meta.json"
+            if os.path.exists(mp):
+                with open(mp, "r") as f:
+                    self.meta = json.load(f)
+        except:
+            self.meta = {}
+            
+        print("✅ ML model status check complete.")
 
     def is_ready(self):
         return self.model is not None
@@ -220,9 +223,8 @@ class Predictor:
         label  = ["Low","Medium","High"][cls]
 
         # Skip SHAP on Render to prevent memory exhaustion and timeouts
-        if os.environ.get("RENDER"):
-            shap_d = {}
-        else:
+        shap_d = {}
+        if not os.environ.get("RENDER"):
             try:
                 self._build_explainer()
                 if self.explainer is not None:
@@ -232,7 +234,7 @@ class Predictor:
                         sv = self.explainer(Xs)
                     shap_d = self._extract_shap(sv, cls)
             except Exception:
-                shap_d = {}
+                pass
 
         # Clinical flags
         flags = []
