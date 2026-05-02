@@ -194,7 +194,12 @@ def process_chat(msg, session):
             raw_text = raw_text[:-3]
         raw_text = raw_text.strip()
             
-        data = json.loads(raw_text)
+        # Extract JSON using regex to handle extra conversational text
+        json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+        if not json_match:
+            raise ValueError("No valid JSON found in AI response.")
+        
+        data = json.loads(json_match.group(0))
         reply_text = data.get("reply", "I didn't quite get that.")
         extracted = data.get("extracted", {})
         

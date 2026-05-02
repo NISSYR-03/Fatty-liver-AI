@@ -40,8 +40,14 @@ MODEL_DIR = os.path.join(os.path.dirname(__file__),
 BASE_FEATURES = ["age","gender","bmi","alt","ast",
                  "bilirubin","albumin","triglycerides","glucose"]
 
-ALL_FEATURES  = BASE_FEATURES + ["ast_alt_ratio","bmi_category","age_group",
-                                 "liver_enzymes","metabolic_score","albumin_bilirubin","female_risk"]
+ALL_FEATURES  = BASE_FEATURES + [
+    "ast_alt_ratio", "albumin_bilirubin",
+    "bmi_category", "age_group",
+    "liver_enzymes", "metabolic_score", "female_risk",
+    "bmi_sq", "alt_sq", "bmi_glucose", "age_bmi",
+    "tri_glucose", "alt_albumin",
+    "log_alt", "log_ast", "log_tri", "log_bili"
+]
 
 NORMAL = {          # (low, high, unit)
     "alt":           (7,   56,  "U/L"),
@@ -87,6 +93,18 @@ def _engineer(data: dict) -> dict:
     d["metabolic_score"] = bmi * (glucose / 100) * (triglycerides / 150)
     d["albumin_bilirubin"] = albumin / (bilirubin + 0.1)
     d["female_risk"] = (1 - gender) * bmi
+
+    # Extended features for 26-feature model
+    d["bmi_sq"]      = bmi ** 2
+    d["alt_sq"]      = alt ** 2
+    d["bmi_glucose"] = bmi * glucose
+    d["age_bmi"]     = age * bmi
+    d["tri_glucose"] = triglycerides * glucose
+    d["alt_albumin"] = alt / (albumin + 1e-5)
+    d["log_alt"]     = np.log1p(alt)
+    d["log_ast"]     = np.log1p(ast)
+    d["log_tri"]     = np.log1p(triglycerides)
+    d["log_bili"]    = np.log1p(bilirubin)
 
     return d
 
