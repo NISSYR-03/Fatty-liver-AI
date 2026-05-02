@@ -125,6 +125,24 @@ RECS = {
 }
 
 
+class ManualEnsemble:
+    """Weighted soft-voting over pre-fitted classifiers."""
+    def __init__(self, models, weights=None):
+        self.models  = models
+        self.weights = weights or [1.0] * len(models)
+
+    def predict_proba(self, X):
+        probas = np.array([m.predict_proba(X) for m in self.models])
+        w      = np.array(self.weights)[:, None, None]
+        return (probas * w).sum(axis=0) / w.sum()
+
+    def predict(self, X):
+        return np.argmax(self.predict_proba(X), axis=1)
+
+    def fit(self, X, y):   # sklearn compat stub
+        return self
+
+
 class Predictor:
     def __init__(self):
         self.model     = None
