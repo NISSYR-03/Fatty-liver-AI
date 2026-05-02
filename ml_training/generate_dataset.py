@@ -16,15 +16,15 @@ N = 20000   # Double the data for better generalisation
 
 
 def generate():
-    age           = np.random.randint(18, 80, N)
-    gender        = np.random.choice([0, 1], N)          # 0=Female 1=Male
-    bmi           = np.random.normal(26, 4.5, N).clip(15, 55)
-    alt           = np.random.normal(28, 14, N).clip(5, 300)
-    ast           = np.random.normal(24, 11, N).clip(5, 300)
-    bilirubin     = np.random.normal(0.9, 0.45, N).clip(0.1, 6)
-    albumin       = np.random.normal(4.1, 0.45, N).clip(1.5, 5.5)
+    age = np.random.randint(18, 80, N)
+    gender = np.random.choice([0, 1], N)  # 0=Female 1=Male
+    bmi = np.random.normal(26, 4.5, N).clip(15, 55)
+    alt = np.random.normal(28, 14, N).clip(5, 300)
+    ast = np.random.normal(24, 11, N).clip(5, 300)
+    bilirubin = np.random.normal(0.9, 0.45, N).clip(0.1, 6)
+    albumin = np.random.normal(4.1, 0.45, N).clip(1.5, 5.5)
     triglycerides = np.random.normal(140, 65, N).clip(30, 700)
-    glucose       = np.random.normal(98, 22, N).clip(55, 400)
+    glucose = np.random.normal(98, 22, N).clip(55, 400)
 
     # ── Latent risk score ─────────────────────────────────────────────────────
     # Stronger coefficients → cleaner class separation

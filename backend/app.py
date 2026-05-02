@@ -1,24 +1,35 @@
-"""
-backend/app.py  —  HepatoAI Flask Server
-Run: python app.py
-Serves all API routes + frontend on http://localhost:5000
-"""
-
-import os, sys, traceback
+import os
+import sys
+import json
+import re
+import traceback
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from dotenv import load_dotenv
+from google import genai
 
 # Allow importing from project root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from backend.models.predictor      import Predictor
-from backend.utils.ocr_extractor   import extract_blood_values
+from backend.models.predictor import Predictor
+from backend.utils.ocr_extractor import extract_blood_values
 from backend.utils.image_classifier import classify_ultrasound
+
+load_dotenv()
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
 app = Flask(__name__, static_folder=FRONTEND_DIR)
 CORS(app)
+
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
+client = None
+if API_KEY:
+    client = genai.Client(api_key=API_KEY)
+else:
+    print("WARNING: GEMINI_API_KEY not found in environment.")
+
+MODEL_NAME = "gemini-2.5-flash"
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -116,20 +127,6 @@ def chat():
 # ────────────────────────────────────────────────────────────────────
 #  CHATBOT LOGIC
 # ────────────────────────────────────────────────────────────────────
-import os
-import json
-import re
-import google.generativeai as genai
-from dotenv import load_dotenv
-
-load_dotenv()
-API_KEY = os.environ.get("GEMINI_API_KEY", "")
-if API_KEY:
-    genai.configure(api_key=API_KEY)
-else:
-    print("WARNING: GEMINI_API_KEY not found in environment.")
-
-MODEL_NAME = "gemini-2.5-flash"
 SYSTEM_PROMPT = """
 You are HepatoAI, an expert Liver Health AI Assistant. Your goal is to provide deep, accurate, and comprehensive knowledge about liver health, fatty liver disease, medical tests (like ALT, AST, Bilirubin, Albumin), and general wellness.
 
@@ -181,11 +178,13 @@ def process_chat(msg, session):
 
     reply_text = "I'm having trouble connecting to my AI brain right now."
     try:
-        if not API_KEY:
-            raise ValueError("GEMINI_API_KEY is not set in your environment. Please add it to your .env file.")
+        if not client:
+            raise ValueError("Gemini client is not initialized. Check your API key.")
             
-        model = genai.GenerativeModel(MODEL_NAME)
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
         
         # Clean up response text in case Gemini wraps it in markdown code blocks
         raw_text = response.text.strip()
@@ -237,15 +236,9 @@ def process_chat(msg, session):
         rec       = result["recommendation"]
         prediction = result
 
+        # Risk level assessment
         emoji = {"Low":"🟢","Medium":"🟡","High":"🔴"}.get(risk, "⚪")
         conf  = round(max(probas)*100, 1)
-
-        if self.explainer is None:
-            try:
-                # Use a smaller background dataset for faster SHAP
-                self.explainer = shap.TreeExplainer(self.model)
-            except:
-                self.explainer = None
 
         if shap_d:
             top3 = sorted(shap_d.items(), key=lambda x: abs(x[1]), reverse=True)[:3]

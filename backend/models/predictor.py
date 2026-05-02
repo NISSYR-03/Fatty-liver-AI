@@ -8,11 +8,6 @@ import numpy as np
 import joblib
 import shap
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  ManualEnsemble Class
-#  This must be present for joblib to unpickle the ensemble model.
-#  We inject it into __main__ to match the environment where it was saved.
-# ─────────────────────────────────────────────────────────────────────────────
 class ManualEnsemble:
     """Weighted soft-voting over pre-fitted classifiers."""
     def __init__(self, models, weights=None):
@@ -125,22 +120,7 @@ RECS = {
 }
 
 
-class ManualEnsemble:
-    """Weighted soft-voting over pre-fitted classifiers."""
-    def __init__(self, models, weights=None):
-        self.models  = models
-        self.weights = weights or [1.0] * len(models)
-
-    def predict_proba(self, X):
-        probas = np.array([m.predict_proba(X) for m in self.models])
-        w      = np.array(self.weights)[:, None, None]
-        return (probas * w).sum(axis=0) / w.sum()
-
-    def predict(self, X):
-        return np.argmax(self.predict_proba(X), axis=1)
-
-    def fit(self, X, y):   # sklearn compat stub
-        return self
+# Already defined above and injected into __main__
 
 
 class Predictor:
@@ -173,7 +153,8 @@ class Predictor:
 
         mp = f"{MODEL_DIR}/model_meta.json"
         if os.path.exists(mp):
-            self.meta = json.load(open(mp))
+            with open(mp, "r") as f:
+                self.meta = json.load(f)
         print("✅ ML model loaded.")
 
     def is_ready(self):
