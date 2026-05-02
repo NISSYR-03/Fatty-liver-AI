@@ -230,9 +230,11 @@ class Predictor:
         probas = self.model.predict_proba(Xs)[0].tolist()
         label  = ["Low","Medium","High"][cls]
 
-        # SHAP contributions are optional when explainer loading fails
-        shap_d = {}
-        try:
+        # Skip SHAP on Render to prevent memory exhaustion and timeouts
+        if os.environ.get("RENDER"):
+            shap_d = {}
+        else:
+            try:
             self._build_explainer()
             if self.explainer is not None:
                 if hasattr(self.explainer, "shap_values"):
