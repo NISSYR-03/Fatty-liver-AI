@@ -809,53 +809,67 @@
     }
 
     const NORMALS = {
-      age: [18, 100, 'yrs'], bmi: [18.5, 24.9, 'kg/m²'],
+      age: [18, 100, 'yrs'], bmi: [18.5, 24.9, 'kg/m2'],
       alt: [7, 56, 'U/L'], ast: [10, 40, 'U/L'], bilirubin: [0.2, 1.2, 'mg/dL'],
       albumin: [3.5, 5.0, 'g/dL'], triglycerides: [0, 150, 'mg/dL'], glucose: [70, 100, 'mg/dL']
     };
 
-    function renderExtracted(vals, missing) {
+    function renderExtracted(vals) {
       const grid = document.getElementById('extractedGrid');
       grid.innerHTML = '';
-      const allFields = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
-      allFields.forEach(f => {
+      
+      // We will show these 8 fields in the grid
+      const fields = ['age', 'gender', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
+      
+      // IMPORTANT: BMI is special, we handle it separately to ensure visibility
+      const bmiVal = vals['bmi'] || '';
+      
+      fields.forEach(f => {
         const v = vals[f];
         const [lo, hi, unit] = NORMALS[f] || [null, null, ''];
         let statusClass = 'status-ok', statusText = 'Normal';
         
-        // Custom handling for Age/Gender which don't have standard ranges
         if (f === 'age') {
-            statusText = v ? 'Age Set' : 'Missing';
+            statusText = v ? 'Age Set' : 'MISSING';
             statusClass = v ? 'status-ok' : 'status-high';
         } else if (f === 'gender') {
-            statusText = (v === 1) ? 'Male' : (v === 0 ? 'Female' : 'Missing');
+            statusText = (v === 1) ? 'Male' : (v === 0 ? 'Female' : 'MISSING');
             statusClass = (v !== undefined) ? 'status-ok' : 'status-high';
         } else if (v !== undefined && lo !== null) {
-          if (v < lo) { statusClass = 'status-low'; statusText = 'LOW'; }
-          else if (v > hi) { statusClass = 'status-high'; statusText = 'HIGH'; }
+            if (v < lo) { statusClass = 'status-low'; statusText = 'LOW'; }
+            else if (v > hi) { statusClass = 'status-high'; statusText = 'HIGH'; }
         } else if (v === undefined) {
-          statusText = 'MISSING';
-          statusClass = 'status-high';
+            statusText = 'MISSING';
+            statusClass = 'status-high';
         }
         
         grid.innerHTML += `
-      <div class="ext-card" style="${v === undefined ? 'border: 1px dashed var(--danger)' : ''}">
-        <div class="ext-field">${f.toUpperCase()}</div>
-        <input class="ext-val" type="${f === 'gender' ? 'text' : 'number'}" id="ext-${f}" 
-               value="${f === 'gender' ? (v === 1 ? 'Male' : (v === 0 ? 'Female' : '')) : (v !== undefined ? v : '')}"
-               placeholder="—" step="0.01"
-               style="background:none;border:none;color:var(--text);font-size:1.3rem;
-                      font-weight:500;width:100%;outline:none;font-family:'DM Sans',sans-serif"
-               onchange="handleManualEdit('${f}', this.value)"/>
-        <div><span class="ext-status ${statusClass}">${statusText}</span>
-          <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${unit}</span>
-        </div>
-      </div>`;
+          <div class="ext-card" style="${v === undefined ? 'border:1px dashed #FF4C4C' : ''}">
+            <div class="ext-field">${f.toUpperCase()}</div>
+            <input class="ext-val" type="${f === 'gender' ? 'text' : 'number'}" id="ext-${f}" 
+                   value="${f === 'gender' ? (v === 1 ? 'Male' : (v === 0 ? 'Female' : '')) : (v !== undefined ? v : '')}"
+                   placeholder="—"
+                   style="background:none;border:none;color:#E4F0EC;font-size:1.2rem;font-weight:500;width:100%;outline:none;"
+                   onchange="handleManualEdit('${f}', this.value)"/>
+            <div><span class="ext-status ${statusClass}">${statusText}</span>
+              <span style="font-size:.7rem;color:#5A8099;margin-left:.5rem">${unit}</span>
+            </div>
+          </div>`;
       });
+
+      // Add a dedicated BMI input card at the end
+      grid.innerHTML += `
+        <div class="ext-card" style="border: 2px solid var(--accent); background: rgba(0,212,160,0.05)">
+            <div class="ext-field" style="color:var(--accent)">BMI (BODY MASS INDEX)</div>
+            <input class="ext-val" type="number" id="ext-bmi" value="${bmiVal}"
+                   placeholder="Enter BMI" step="0.1"
+                   style="background:none;border:none;color:var(--accent);font-size:1.5rem;font-weight:700;width:100%;outline:none;"
+                   onchange="handleManualEdit('bmi', this.value)"/>
+            <div style="font-size:.75rem; color:var(--accent)">Required for Analysis</div>
+        </div>`;
+
       document.getElementById('extractedVals').style.display = 'block';
-      
-      const criticalMissing = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'].filter(f => vals[f] === undefined);
-      if (criticalMissing.length) toast(`Please fill missing fields: ${criticalMissing.join(', ')}.`);
+      toast('Please review values and enter any missing data (like BMI).');
     }
 
     function handleManualEdit(field, val) {
