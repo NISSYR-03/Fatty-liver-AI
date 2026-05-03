@@ -143,7 +143,7 @@ class Predictor:
             
             p = os.path.join(MODEL_DIR, "xgboost_model.pkl")
             if os.path.exists(p):
-                self.model = joblib.load(p)
+                self.model = joblib.load(p, mmap_mode=mmap)
                 if hasattr(self.model, "models"):
                     self.model = self.model.models[0]
             
