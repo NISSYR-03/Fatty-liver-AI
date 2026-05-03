@@ -809,6 +809,7 @@
     }
 
     const NORMALS = {
+      age: [18, 100, 'yrs'], bmi: [18.5, 24.9, 'kg/m²'],
       alt: [7, 56, 'U/L'], ast: [10, 40, 'U/L'], bilirubin: [0.2, 1.2, 'mg/dL'],
       albumin: [3.5, 5.0, 'g/dL'], triglycerides: [0, 150, 'mg/dL'], glucose: [70, 100, 'mg/dL']
     };
@@ -816,7 +817,7 @@
     function renderExtracted(vals, missing) {
       const grid = document.getElementById('extractedGrid');
       grid.innerHTML = '';
-      const allFields = ['age', 'gender', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
+      const allFields = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
       allFields.forEach(f => {
         const v = vals[f];
         const [lo, hi, unit] = NORMALS[f] || [null, null, ''];
