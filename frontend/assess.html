@@ -816,30 +816,54 @@
     function renderExtracted(vals, missing) {
       const grid = document.getElementById('extractedGrid');
       grid.innerHTML = '';
-      const allFields = ['alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
+      const allFields = ['age', 'gender', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
       allFields.forEach(f => {
         const v = vals[f];
         const [lo, hi, unit] = NORMALS[f] || [null, null, ''];
         let statusClass = 'status-ok', statusText = 'Normal';
-        if (v !== undefined && lo !== null) {
+        
+        // Custom handling for Age/Gender which don't have standard ranges
+        if (f === 'age') {
+            statusText = v ? 'Age Set' : 'Missing';
+            statusClass = v ? 'status-ok' : 'status-high';
+        } else if (f === 'gender') {
+            statusText = (v === 1) ? 'Male' : (v === 0 ? 'Female' : 'Missing');
+            statusClass = (v !== undefined) ? 'status-ok' : 'status-high';
+        } else if (v !== undefined && lo !== null) {
           if (v < lo) { statusClass = 'status-low'; statusText = 'LOW'; }
           else if (v > hi) { statusClass = 'status-high'; statusText = 'HIGH'; }
+        } else if (v === undefined) {
+          statusText = 'MISSING';
+          statusClass = 'status-high';
         }
+        
         grid.innerHTML += `
-      <div class="ext-card">
+      <div class="ext-card" style="${v === undefined ? 'border: 1px dashed var(--danger)' : ''}">
         <div class="ext-field">${f.toUpperCase()}</div>
-        <input class="ext-val" type="number" id="ext-${f}" value="${v !== undefined ? v : ''}"
+        <input class="ext-val" type="${f === 'gender' ? 'text' : 'number'}" id="ext-${f}" 
+               value="${f === 'gender' ? (v === 1 ? 'Male' : (v === 0 ? 'Female' : '')) : (v !== undefined ? v : '')}"
                placeholder="—" step="0.01"
                style="background:none;border:none;color:var(--text);font-size:1.3rem;
                       font-weight:500;width:100%;outline:none;font-family:'DM Sans',sans-serif"
-               onchange="extractedData['${f}']=parseFloat(this.value)"/>
+               onchange="handleManualEdit('${f}', this.value)"/>
         <div><span class="ext-status ${statusClass}">${statusText}</span>
           <span style="font-size:.7rem;color:var(--muted);margin-left:.5rem">${unit}</span>
         </div>
       </div>`;
       });
       document.getElementById('extractedVals').style.display = 'block';
-      if (missing.length) toast(`Could not extract: ${missing.join(', ')} — enter manually.`);
+      
+      const criticalMissing = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'].filter(f => vals[f] === undefined);
+      if (criticalMissing.length) toast(`Please fill missing fields: ${criticalMissing.join(', ')}.`);
+    }
+
+    function handleManualEdit(field, val) {
+        if (field === 'gender') {
+            const v = val.toLowerCase();
+            extractedData[field] = v.includes('m') ? 1 : 0;
+        } else {
+            extractedData[field] = parseFloat(val);
+        }
     }
 
     async function submitExtracted() {
