@@ -113,7 +113,7 @@ def image_predict():
         f    = request.files["file"]
         path = os.path.join(UPLOAD_DIR, f.filename)
         f.save(path)
-        res  = classify_ultrasound(path)
+        res  = classify_ultrasound(path, client=client, model_name=MODEL_NAME)
         os.remove(path)
         return jsonify(res)
     except Exception as e:

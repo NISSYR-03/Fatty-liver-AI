@@ -77,18 +77,81 @@ def _heuristic(img_path):
     }
 
 
-def classify_ultrasound(img_path: str) -> dict:
-    if not TF_OK:
-        return _heuristic(img_path)
-    model = _get_model()
-    img   = kimg.load_img(img_path, target_size=IMG_SIZE)
-    x     = preprocess_input(np.expand_dims(kimg.img_to_array(img), 0))
-    pred  = model.predict(x, verbose=0)[0]
-    cls   = int(np.argmax(pred))
-    return {
-        "class_index":   cls,
-        "class_label":   LABELS[cls],
-        "risk_level":    RISK_MAP[LABELS[cls]],
-        "probabilities": {LABELS[i]: round(float(pred[i]),3) for i in range(4)},
-        "method":        "ResNet50 CNN",
-    }
+def _gemini_vision_analysis(img_path, client, model_name):
+    """Use Gemini Vision AI to analyze the ultrasound image."""
+    try:
+        from PIL import Image
+        img = Image.open(img_path)
+        
+        prompt = (
+            "You are a radiologist specializing in hepatology. Analyze this liver ultrasound image. "
+            "Determine if it shows a Normal liver, Mild Fatty Liver, Moderate Fatty Liver, or Severe Fatty Liver. "
+            "Provide your answer as a JSON object with exactly these fields: "
+            "{\"class_label\": \"one of the 4 labels\", \"confidence\": float between 0 and 1, \"explanation\": \"short 1-sentence reason\"}"
+        )
+        
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[prompt, img]
+        )
+        
+        # Parse response
+        import json, re
+        raw_text = response.text.strip()
+        json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+        if json_match:
+            data = json.loads(json_match.group(0))
+            label = data.get("class_label", "Normal")
+            # Normalize label to match our LABELS
+            match = "Normal"
+            for l in LABELS:
+                if l.lower() in label.lower():
+                    match = l
+                    break
+            
+            cls = LABELS.index(match)
+            conf = data.get("confidence", 0.9)
+            
+            # Build probabilities
+            p = [(1.0 - conf) / 3] * 4
+            p[cls] = conf
+            
+            return {
+                "class_index":   cls,
+                "class_label":   match,
+                "risk_level":    RISK_MAP[match],
+                "probabilities": {LABELS[i]: round(p[i], 3) for i in range(4)},
+                "explanation":   data.get("explanation", ""),
+                "method":        "Gemini Vision AI",
+            }
+    except Exception as e:
+        print(f"⚠️ Gemini Vision failed: {e}")
+    return None
+
+
+def classify_ultrasound(img_path: str, client=None, model_name="gemini-2.0-flash") -> dict:
+    # 1. Try Gemini Vision (Cloud AI - Recommended for Render)
+    if client:
+        res = _gemini_vision_analysis(img_path, client, model_name)
+        if res: return res
+
+    # 2. Try Local TensorFlow (Heavy - might OOM on Render)
+    if TF_OK:
+        try:
+            model = _get_model()
+            img   = kimg.load_img(img_path, target_size=IMG_SIZE)
+            x     = preprocess_input(np.expand_dims(kimg.img_to_array(img), 0))
+            pred  = model.predict(x, verbose=0)[0]
+            cls   = int(np.argmax(pred))
+            return {
+                "class_index":   cls,
+                "class_label":   LABELS[cls],
+                "risk_level":    RISK_MAP[LABELS[cls]],
+                "probabilities": {LABELS[i]: round(float(pred[i]),3) for i in range(4)},
+                "method":        "ResNet50 CNN",
+            }
+        except Exception as e:
+            print(f"⚠️ Local CNN failed: {e}")
+
+    # 3. Last Resort: Heuristic
+    return _heuristic(img_path)
