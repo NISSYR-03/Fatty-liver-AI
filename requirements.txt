@@ -14,3 +14,5 @@ lightgbm==4.1.0
 setuptools
 wheel
 Pillow
+PyMuPDF==1.23.5
+pytesseract==0.3.10

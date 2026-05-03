@@ -96,7 +96,7 @@ def ocr():
         f    = request.files["file"]
         path = os.path.join(UPLOAD_DIR, f.filename)
         f.save(path)
-        res  = extract_blood_values(path)
+        res  = extract_blood_values(path, client=client, model_name=MODEL_NAME)
         os.remove(path)
         return jsonify(res)
     except Exception as e:
