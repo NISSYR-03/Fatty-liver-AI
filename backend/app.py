@@ -41,14 +41,19 @@ predictor = Predictor()
 # ─── SERVE FRONTEND ─────────────────────────────────────────────────
 @app.route("/")
 def serve_index():
-    return send_from_directory(FRONTEND_DIR, "index.html")
+    response = send_from_directory(FRONTEND_DIR, "index.html")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
 
 @app.route("/<path:filename>")
 def serve_frontend(filename):
     """Serve frontend HTML/CSS/JS files (only if not an /api route)"""
     filepath = os.path.join(FRONTEND_DIR, filename)
     if os.path.isfile(filepath):
-        return send_from_directory(FRONTEND_DIR, filename)
+        response = send_from_directory(FRONTEND_DIR, filename)
+        # Disable caching so users don't get stuck on old code
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
     return jsonify({"error": "Not found"}), 404
 
 
