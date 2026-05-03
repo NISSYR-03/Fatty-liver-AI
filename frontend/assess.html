@@ -388,15 +388,6 @@
     }
 
     /* IMAGE PANEL */
-    .img-preview {
-      max-width: 100%;
-      max-height: 300px;
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      margin-top: 1rem;
-      display: none
-    }
-
     .img-result {
       background: var(--card);
       border: 1px solid var(--border);
@@ -404,6 +395,29 @@
       border-radius: 2px;
       margin-top: 1rem;
       display: none
+    }
+
+    .img-container {
+      position: relative;
+      margin-top: 1rem;
+      display: inline-block;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .img-preview {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+
+    .img-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
     }
 
     .img-result-cls {
@@ -673,7 +687,10 @@
         <div class="upload-sub">ResNet50 CNN will classify fatty deposits</div>
         <div class="upload-types">PNG · JPG · BMP · TIFF · WEBP</div>
       </div>
-      <img id="imgPreview" class="img-preview" />
+      <div class="img-container" id="imgContainer" style="display:none">
+        <img id="imgPreview" class="img-preview" />
+        <canvas id="imgOverlay" class="img-overlay"></canvas>
+      </div>
 
       <div class="loading" id="loading-img" style="margin-top:1rem">
         <div class="spinner"></div>Running CNN classification…
@@ -858,8 +875,13 @@
       if (!file) return;
       const preview = document.getElementById('imgPreview');
       preview.src = URL.createObjectURL(file);
-      preview.style.display = 'block';
+      document.getElementById('imgContainer').style.display = 'block';
       document.getElementById('imgResult').style.display = 'none';
+      
+      // Clear canvas
+      const canvas = document.getElementById('imgOverlay');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       setLoad('loading-img', true);
 
       const fd = new FormData();
@@ -881,6 +903,33 @@
       const clsEl = document.getElementById('imgClass');
       const riskEl = document.getElementById('imgRisk');
       const barsEl = document.getElementById('imgBars');
+      const canvas = document.getElementById('imgOverlay');
+      const img = document.getElementById('imgPreview');
+
+      // Sync canvas size to image
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Draw bounding box if present [ymin, xmin, ymax, xmax] (0-1000)
+      if (data.box_2d && data.box_2d.length === 4) {
+        const [ymin, xmin, ymax, xmax] = data.box_2d;
+        const x = (xmin / 1000) * canvas.width;
+        const y = (ymin / 1000) * canvas.height;
+        const w = ((xmax - xmin) / 1000) * canvas.width;
+        const h = ((ymax - ymin) / 1000) * canvas.height;
+
+        ctx.strokeStyle = riskColor[data.risk_level] || '#FF4C4C';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(x, y, w, h);
+        
+        // Draw label
+        ctx.fillStyle = riskColor[data.risk_level] || '#FF4C4C';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText('Detected Affected Area', x, y - 5);
+      }
 
       clsEl.textContent = data.class_label;
       clsEl.style.color = riskColor[data.risk_level] || 'var(--text)';

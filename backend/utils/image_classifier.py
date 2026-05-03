@@ -87,8 +87,9 @@ def _gemini_vision_analysis(img_path, client, model_name):
             "You are a radiologist specializing in hepatology. Analyze this liver ultrasound image. "
             "Determine if it shows a Normal liver, Mild Fatty Liver, Moderate Fatty Liver, or Severe Fatty Liver. "
             "If you detect fatty liver, specifically mention which part of the liver is affected (e.g., right lobe, left lobe, diffuse, etc.). "
+            "IMPORTANT: Also provide the [ymin, xmin, ymax, xmax] coordinates (normalized 0-1000) for the primary area of interest or fat deposit. "
             "Provide your answer as a JSON object with exactly these fields: "
-            "{\"class_label\": \"one of the 4 labels\", \"confidence\": float between 0 and 1, \"explanation\": \"short 1-sentence reason including location if applicable\"}"
+            "{\"class_label\": \"one of the 4 labels\", \"confidence\": float between 0 and 1, \"explanation\": \"short 1-sentence reason\", \"box_2d\": [ymin, xmin, ymax, xmax]}"
         )
         
         response = client.models.generate_content(
@@ -123,6 +124,7 @@ def _gemini_vision_analysis(img_path, client, model_name):
                 "risk_level":    RISK_MAP[match],
                 "probabilities": {LABELS[i]: round(p[i], 3) for i in range(4)},
                 "explanation":   data.get("explanation", ""),
+                "box_2d":        data.get("box_2d", None),
                 "method":        "Gemini Vision AI",
             }
     except Exception as e:
