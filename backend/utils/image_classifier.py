@@ -86,8 +86,9 @@ def _gemini_vision_analysis(img_path, client, model_name):
         prompt = (
             "You are a radiologist specializing in hepatology. Analyze this liver ultrasound image. "
             "Determine if it shows a Normal liver, Mild Fatty Liver, Moderate Fatty Liver, or Severe Fatty Liver. "
+            "If you detect fatty liver, specifically mention which part of the liver is affected (e.g., right lobe, left lobe, diffuse, etc.). "
             "Provide your answer as a JSON object with exactly these fields: "
-            "{\"class_label\": \"one of the 4 labels\", \"confidence\": float between 0 and 1, \"explanation\": \"short 1-sentence reason\"}"
+            "{\"class_label\": \"one of the 4 labels\", \"confidence\": float between 0 and 1, \"explanation\": \"short 1-sentence reason including location if applicable\"}"
         )
         
         response = client.models.generate_content(

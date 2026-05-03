@@ -682,6 +682,7 @@
       <div class="img-result" id="imgResult">
         <div class="img-result-cls" id="imgClass"></div>
         <div style="font-size:.85rem;color:var(--muted);margin:.3rem 0 1rem" id="imgRisk"></div>
+        <div id="imgExplanation" style="margin-bottom: 1.5rem; font-size: 0.95rem; color: var(--text); background: rgba(0,212,160,0.05); padding: 1rem; border-left: 3px solid var(--accent);"></div>
         <div class="img-conf-bars" id="imgBars"></div>
       </div>
     </div>
@@ -884,6 +885,14 @@
       clsEl.textContent = data.class_label;
       clsEl.style.color = riskColor[data.risk_level] || 'var(--text)';
       riskEl.textContent = `Overall Risk: ${data.risk_level}  |  Method: ${data.method}`;
+      
+      const expEl = document.getElementById('imgExplanation');
+      if (data.explanation) {
+        expEl.innerHTML = `<strong>AI Observation:</strong> ${data.explanation}`;
+        expEl.style.display = 'block';
+      } else {
+        expEl.style.display = 'none';
+      }
 
       barsEl.innerHTML = '';
       Object.entries(data.probabilities || {}).forEach(([lbl, pct]) => {
