@@ -20,9 +20,11 @@ except ImportError:
 
 # Field → regex patterns (case-insensitive on uppercased text)
 PATTERNS = {
+    "age":           [r"AGE[^\d]{0,10}(\d+)"],
+    "gender":        [r"GENDER[^\w]{0,10}(MALE|FEMALE|M|F)"],
     "alt":           [r"(?:ALT|SGPT|ALANINE[^0-9]*(?:AMINO)?TRANSFERASE)[^\d]{0,20}(\d+\.?\d*)"],
     "ast":           [r"(?:AST|SGOT|ASPARTATE[^0-9]*(?:AMINO)?TRANSFERASE)[^\d]{0,20}(\d+\.?\d*)"],
-    "bilirubin":     [r"(?:TOTAL\s*BILIRUBIN|T\.?\s*BILI(?:RUBIN)?)[^\d]{0,20}(\d+\.?\d*)"],
+    "bilirubin":     [r"(?:TOTAL\s*BILIRUBIN|BILIRUBIN\s*TOTAL|T\.?\s*BILI(?:RUBIN)?)[^\d]{0,20}(\d+\.?\d*)"],
     "albumin":       [r"(?:ALBUMIN|ALB)[^\d]{0,15}(\d+\.?\d*)"],
     "triglycerides": [r"(?:TRIGLYCERIDES?|TRIGS?|TG)[^\d]{0,15}(\d+\.?\d*)"],
     "glucose":       [r"(?:GLUCOSE|BLOOD\s*SUGAR|FBS|FASTING\s*BLOOD)[^\d]{0,20}(\d+\.?\d*)"],
@@ -85,8 +87,12 @@ def extract_blood_values(file_path: str, client=None, model_name="gemini-2.5-fla
         for pat in pats:
             m = re.search(pat, tu)
             if m:
+                val = m.group(1)
+                if field == "gender":
+                    found[field] = 1 if "M" in val else 0
+                    break
                 try:
-                    found[field] = float(m.group(1))
+                    found[field] = float(val)
                     break
                 except (ValueError, IndexError):
                     continue
