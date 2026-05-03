@@ -35,8 +35,14 @@ UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024   # 20 MB
 
-predictor = Predictor()
+predictor_instance = None
 
+def get_predictor():
+    global predictor_instance
+    if predictor_instance is None:
+        from backend.models.predictor import Predictor
+        predictor_instance = Predictor()
+    return predictor_instance
 
 # ─── SERVE FRONTEND ─────────────────────────────────────────────────
 @app.route("/")
@@ -60,11 +66,12 @@ def serve_frontend(filename):
 # ─── HEALTH ─────────────────────────────────────────────────────────
 @app.route("/api/health")
 def health():
+    pred = get_predictor()
     return jsonify({
         "status": "ok",
-        "model_ready": predictor.is_ready(),
-        "model_accuracy": predictor.meta.get("accuracy", "N/A"),
-        "model_auc": predictor.meta.get("auc", "N/A")
+        "model_ready": pred.is_ready(),
+        "model_accuracy": pred.meta.get("accuracy", "N/A"),
+        "model_auc": pred.meta.get("auc", "N/A")
     })
 
 
@@ -73,7 +80,7 @@ def health():
 def predict():
     try:
         data   = request.get_json(force=True)
-        result = predictor.predict(data)
+        result = get_predictor().predict(data)
         return jsonify(result)
     except Exception as e:
         traceback.print_exc()
@@ -234,7 +241,7 @@ def process_chat(msg, session):
     if not remaining:
         # All collected — run prediction
         pred_data = {k:v for k,v in session.items() if k in fields}
-        result    = predictor.predict(pred_data)
+        result    = get_predictor().predict(pred_data)
         risk      = result["risk_label"]
         probas    = result["probabilities"]
         shap_d    = result.get("shap_contributions", {})
