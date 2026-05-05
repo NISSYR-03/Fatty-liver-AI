@@ -21,6 +21,11 @@
       --muted: #5A8099;
       --mono: 'DM Mono', monospace;
     }
+    html.light-mode {
+      --bg: #F4F7F6; --surface: #E8EDEA; --card: #FFFFFF; --border: #D1DFD9;
+      --accent: #00A67E; --warn: #E68A00; --danger: #D63031;
+      --text: #1C2B36; --muted: #6C8294;
+    }
 
     * {
       box-sizing: border-box;
@@ -558,13 +563,19 @@
       }
     }
   </style>
+  <script>
+    if (localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light-mode');
+  </script>
 </head>
 
 <body>
 
   <nav>
     <a class="logo" href="index.html">Hepato<span>AI</span></a>
-    <a class="back-btn" href="index.html">← Back to Home</a>
+    <div style="display:flex; gap:1rem; align-items:center;">
+      <button onclick="document.documentElement.classList.toggle('light-mode'); localStorage.setItem('theme', document.documentElement.classList.contains('light-mode') ? 'light' : 'dark')" style="background:none;border:none;color:var(--text);font-size:1.1rem;cursor:pointer;outline:none;" title="Toggle Theme">🌓</button>
+      <a class="back-btn" href="index.html">← Back to Home</a>
+    </div>
   </nav>
 
   <div class="page">
@@ -599,8 +610,17 @@
 
         <div class="field">
           <label>BMI (kg/m²)</label>
-          <input type="number" id="bmi" placeholder="e.g. 26.5" step="0.1" min="10" max="70" />
+          <div style="display:flex;gap:0.5rem">
+              <input type="number" id="bmi" placeholder="e.g. 26.5" step="0.1" min="10" max="70" style="flex:1" />
+              <button type="button" onclick="document.getElementById('bmi-widget').style.display='flex'" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:0 0.8rem;border-radius:2px;cursor:pointer;" title="Calculate BMI">🧮</button>
+          </div>
           <span class="normal-range">Normal: 18.5–24.9</span>
+          <div id="bmi-widget" style="display:none;flex-direction:column;gap:0.5rem;background:rgba(0,0,0,0.2);padding:0.8rem;border-radius:2px;border:1px solid var(--border);margin-top:0.5rem;">
+              <div style="font-size:0.75rem;color:var(--accent);">BMI CALCULATOR</div>
+              <input type="number" id="bmi-w" placeholder="Weight (kg)" style="padding:0.5rem;font-size:0.85rem">
+              <input type="number" id="bmi-h" placeholder="Height (cm)" style="padding:0.5rem;font-size:0.85rem">
+              <button type="button" class="btn-s" style="padding:0.5rem;justify-content:center;" onclick="let w=document.getElementById('bmi-w').value,h=document.getElementById('bmi-h').value;if(w&&h){document.getElementById('bmi').value=(w/Math.pow(h/100,2)).toFixed(1);document.getElementById('bmi-widget').style.display='none';}">Apply</button>
+          </div>
         </div>
 
         <div class="field">
@@ -637,6 +657,12 @@
           <label>Fasting Glucose (mg/dL)</label>
           <input type="number" id="glucose" placeholder="e.g. 95" min="0" max="600" />
           <span class="normal-range">Normal: 70–100 mg/dL</span>
+        </div>
+
+        <div class="field">
+          <label>Platelets (10³/µL)</label>
+          <input type="number" id="platelets" placeholder="e.g. 250" min="0" max="1500" />
+          <span class="normal-range">Normal: 150–450 10³/µL</span>
         </div>
       </div>
 
@@ -738,7 +764,7 @@
 
     // ── Demo data ─────────────────────────────────────────────────────
     function fillDemo() {
-      const d = { age: 42, gender: 1, bmi: 29.5, alt: 68, ast: 52, bilirubin: 1.4, albumin: 3.8, triglycerides: 210, glucose: 112 };
+      const d = { age: 42, gender: 1, bmi: 29.5, alt: 68, ast: 52, bilirubin: 1.4, albumin: 3.8, triglycerides: 210, glucose: 112, platelets: 180 };
       Object.entries(d).forEach(([k, v]) => {
         const el = document.getElementById(k);
         if (el) el.value = v;
@@ -748,7 +774,7 @@
 
     // ── MANUAL SUBMIT ─────────────────────────────────────────────────
     async function submitManual() {
-      const fields = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
+      const fields = ['age', 'gender', 'bmi', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose', 'platelets'];
       const data = {};
       let valid = true;
 
@@ -811,15 +837,15 @@
     const NORMALS = {
       age: [18, 100, 'yrs'], bmi: [18.5, 24.9, 'kg/m2'],
       alt: [7, 56, 'U/L'], ast: [10, 40, 'U/L'], bilirubin: [0.2, 1.2, 'mg/dL'],
-      albumin: [3.5, 5.0, 'g/dL'], triglycerides: [0, 150, 'mg/dL'], glucose: [70, 100, 'mg/dL']
+      albumin: [3.5, 5.0, 'g/dL'], triglycerides: [0, 150, 'mg/dL'], glucose: [70, 100, 'mg/dL'], platelets: [150, 450, '10³/µL']
     };
 
     function renderExtracted(vals) {
       const grid = document.getElementById('extractedGrid');
       grid.innerHTML = '';
       
-      // We will show these 8 fields in the grid
-      const fields = ['age', 'gender', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose'];
+      // We will show these fields in the grid
+      const fields = ['age', 'gender', 'alt', 'ast', 'bilirubin', 'albumin', 'triglycerides', 'glucose', 'platelets'];
       
       // IMPORTANT: BMI is special, we handle it separately to ensure visibility
       const bmiVal = vals['bmi'] || '';

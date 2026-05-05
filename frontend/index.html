@@ -21,6 +21,11 @@
       --muted: #5A8099;
       --mono: 'DM Mono', monospace;
     }
+    html.light-mode {
+      --bg: #F4F7F6; --surface: #E8EDEA; --card: #FFFFFF; --border: #D1DFD9;
+      --accent: #00A67E; --warn: #E68A00; --danger: #D63031;
+      --text: #1C2B36; --muted: #6C8294;
+    }
 
     * {
       box-sizing: border-box;
@@ -625,6 +630,9 @@
       }
     }
   </style>
+  <script>
+    if (localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light-mode');
+  </script>
 </head>
 
 <body>
@@ -638,6 +646,7 @@
       <li><a href="assess.html">Assess</a></li>
       <li><a href="results.html">Results</a></li>
       <li><a href="chat.html" class="nav-cta">Chat AI</a></li>
+      <li><button onclick="document.documentElement.classList.toggle('light-mode'); localStorage.setItem('theme', document.documentElement.classList.contains('light-mode') ? 'light' : 'dark')" style="background:none;border:none;color:var(--text);font-size:1.1rem;cursor:pointer;outline:none;" title="Toggle Theme">🌓</button></li>
     </ul>
   </nav>
 

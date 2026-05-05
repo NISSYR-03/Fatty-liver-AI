@@ -11,6 +11,11 @@
   --accent:#00D4A0;--warn:#FFB347;--danger:#FF4C4C;
   --text:#E4F0EC;--muted:#5A8099;--mono:'DM Mono',monospace;
 }
+html.light-mode {
+  --bg: #F4F7F6; --surface: #E8EDEA; --card: #FFFFFF; --border: #D1DFD9;
+  --accent: #00A67E; --warn: #E68A00; --danger: #D63031;
+  --text: #1C2B36; --muted: #6C8294;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   font-weight:300;min-height:100vh}
@@ -134,15 +139,29 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;
   .result-header{grid-template-columns:1fr;gap:1.5rem}
   .risk-divider{display:none}
   .dashboard{grid-template-columns:1fr}
-  .card:nth-child(3),.card:nth-child(4){grid-column:auto}
+}
+@media print {
+  body::before { display: none; }
+  nav, .back-btn, .btn-p, button { display: none !important; }
+  .page { padding: 0 !important; margin: 0 !important; max-width: 100%; }
+  .card, .result-header { break-inside: avoid; background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; }
+  body { background: white !important; color: black !important; }
+  * { color: black !important; text-shadow: none !important; }
+  .pb-fill, .shap-pos, .shap-neg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 </style>
+</style>
+<script>
+  if (localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light-mode');
+</script>
 </head>
 <body>
 
 <nav>
   <a class="logo" href="index.html">Hepato<span>AI</span></a>
   <div class="nav-r">
+    <button onclick="document.documentElement.classList.toggle('light-mode'); localStorage.setItem('theme', document.documentElement.classList.contains('light-mode') ? 'light' : 'dark')" style="background:none;border:none;color:var(--text);font-size:1.1rem;cursor:pointer;outline:none;" title="Toggle Theme">🌓</button>
+    <button class="back-btn" style="border:none;background:none;cursor:pointer" onclick="window.print()">📥 PDF Report</button>
     <a class="back-btn" href="assess.html">← New Assessment</a>
     <a class="btn-p" href="chat.html">💬 Chat AI</a>
   </div>
@@ -156,7 +175,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:999;
 const FEATURES_LABEL = {
   age:'Age', gender:'Gender', bmi:'BMI', alt:'ALT/SGPT',
   ast:'AST/SGOT', bilirubin:'Bilirubin', albumin:'Albumin',
-  triglycerides:'Triglycerides', glucose:'Glucose',
+  triglycerides:'Triglycerides', glucose:'Glucose', platelets:'Platelets',
   ast_alt_ratio:'AST/ALT Ratio', bmi_category:'BMI Category',
   age_group:'Age Group', liver_enzymes:'Liver Enzymes',
   metabolic_score:'Metabolic Score', albumin_bilirubin:'Albumin/Bilirubin',
@@ -164,7 +183,7 @@ const FEATURES_LABEL = {
 };
 const UNITS = {
   age:'yrs', gender:'', bmi:'kg/m²', alt:'U/L', ast:'U/L',
-  bilirubin:'mg/dL', albumin:'g/dL', triglycerides:'mg/dL', glucose:'mg/dL'
+  bilirubin:'mg/dL', albumin:'g/dL', triglycerides:'mg/dL', glucose:'mg/dL', platelets:'10³/µL'
 };
 
 function genderLabel(v){ return v==1?'Male':'Female'; }
@@ -193,6 +212,52 @@ function render(data){
   const shapEntries = Object.entries(shap).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
   const maxShap = Math.max(...shapEntries.map(([,v])=>Math.abs(v)),0.001);
 
+  // FIB-4 Calculation
+  let fib4Html = '';
+  let fib4Score = null;
+  if (inputs.platelets && inputs.age && inputs.ast && inputs.alt) {
+      fib4Score = (inputs.age * inputs.ast) / (inputs.platelets * Math.sqrt(inputs.alt));
+      let fibRisk = fib4Score < 1.3 ? 'Low Risk' : fib4Score > 2.67 ? 'High Risk' : 'Indeterminate';
+      fib4Html = `
+      <div class="risk-model" style="margin-top:0.8rem; padding-top:0.8rem; border-top:1px dashed var(--border);">
+        <strong style="color:var(--accent)">FIB-4 Score: ${fib4Score.toFixed(2)}</strong> 
+        <span style="font-size:0.75rem;color:var(--muted)">(${fibRisk})</span>
+      </div>`;
+  }
+
+  // Confidence Warning
+  const maxProb = Math.max(...probs);
+  const confWarningHtml = maxProb < 0.6 ? 
+    `<div style="background:rgba(255,179,71,0.15); border:1px solid var(--warn); color:var(--warn); padding:0.5rem; border-radius:2px; font-size:0.85rem; margin-bottom:1rem;">⚠️ <strong>Borderline result — consult a physician.</strong></div>` : '';
+
+  // Handle History Tracking
+  let historyHtml = '';
+  try {
+      let historyRaw = localStorage.getItem('hepatoHistory') || '[]';
+      let history = JSON.parse(historyRaw);
+      
+      // Prevent duplicate saving if reloading page on same day for same risk
+      const today = new Date().toLocaleDateString();
+      if (history.length === 0 || history[history.length-1].date !== today || history[history.length-1].risk !== risk) {
+          history.push({ date: today, risk: risk, fib4: fib4Score ? fib4Score.toFixed(2) : 'N/A' });
+          if (history.length > 5) history.shift(); // Keep last 5
+          localStorage.setItem('hepatoHistory', JSON.stringify(history));
+      }
+      
+      if (history.length > 1) {
+          historyHtml = `
+          <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">📈 Assessment History</div>
+            <table class="input-table" style="width:100%">
+              <thead><tr><th>Date</th><th>Risk Level</th><th>FIB-4 Score</th></tr></thead>
+              <tbody>
+                ${history.map(h => `<tr><td>${h.date}</td><td><span style="color:${riskColors[h.risk]}">${h.risk}</span></td><td>${h.fib4}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      }
+  } catch(e) { console.error("History error", e); }
+
   page.innerHTML = `
   <!-- HEADER -->
   <div class="result-header">
@@ -204,13 +269,15 @@ function render(data){
     <div class="risk-divider"></div>
     <div class="risk-info">
       <div class="risk-info-title">Assessment Summary</div>
-      <div class="risk-confidence">Confidence: <strong>${(Math.max(...probs)*100).toFixed(1)}%</strong></div>
+      ${confWarningHtml}
+      <div class="risk-confidence">Confidence: <strong>${(maxProb*100).toFixed(1)}%</strong></div>
       <div class="risk-model" style="margin-bottom:.4rem">
         Model: XGBoost + SHAP &nbsp;|&nbsp; Accuracy: ${data.model_accuracy||'N/A'}
       </div>
       <div class="risk-model">
         ${flags.length ? `⚠️ ${flags.length} abnormal value${flags.length>1?'s':''} detected` : '✅ All values within or near normal ranges'}
       </div>
+      ${fib4Html}
     </div>
     <div class="result-gauge">
       <svg viewBox="0 0 240 160" width="240" class="gauge-svg" xmlns="http://www.w3.org/2000/svg">
@@ -313,6 +380,7 @@ function render(data){
     </div>
 
   </div>
+  ${historyHtml}
   `;
 
   // Animate probability bars

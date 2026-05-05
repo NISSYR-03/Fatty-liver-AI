@@ -254,6 +254,13 @@ class Predictor:
                 flags.append({"field":feat,"status":"HIGH",
                                "value":v,"normal":f"{lo}–{hi} {unit}"})
 
+        input_vals = {f: float(data[f]) for f in BASE_FEATURES}
+        if "platelets" in data and data["platelets"]:
+            try:
+                input_vals["platelets"] = float(data["platelets"])
+            except ValueError:
+                pass
+
         return {
             "risk_label":         label,
             "risk_index":         cls,
@@ -262,6 +269,6 @@ class Predictor:
             "shap_contributions": shap_d,
             "clinical_flags":     flags,
             "recommendation":     RECS[label],
-            "input_values":       dict(zip(BASE_FEATURES, [float(data[f]) for f in BASE_FEATURES])),
+            "input_values":       input_vals,
             "model_accuracy":     self.meta.get("accuracy","N/A"),
         }
